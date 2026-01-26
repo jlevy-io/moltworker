@@ -45,12 +45,9 @@ npm run dev
 
 ### Local vs Production Mode
 
-Set `CLAWDBOT_DEV_MODE=true` for local development. This:
+Set `CLAWDBOT_DEV_MODE=true` for local development. This enables insecure auth for the Control UI (skips HTTPS requirement).
 
-- Binds to `0.0.0.0` (LAN mode) which works with Docker networking
-- Allows insecure auth for the Control UI
-
-In production (when `CLAWDBOT_DEV_MODE` is not set), the gateway uses `--bind auto` and requires secure auth.
+The gateway always binds to `0.0.0.0` (LAN mode) since the Worker connects via the container network in both local and production environments.
 
 This is already configured in `.dev.vars.example`. Just copy it to `.dev.vars` for local dev.
 
@@ -80,7 +77,7 @@ Clawdbot configuration is built at container startup:
 |----------|-------------|-------|
 | `ANTHROPIC_API_KEY` | (env var) | Clawdbot reads directly from env |
 | `CLAWDBOT_GATEWAY_TOKEN` | `--token` flag | If not set, random token is generated |
-| `CLAWDBOT_DEV_MODE` | `--bind` flag + auth | Set to `true` for local dev (LAN binding + insecure auth) |
+| `CLAWDBOT_DEV_MODE` | `controlUi.allowInsecureAuth` | Set to `true` for local dev (allows HTTP auth) |
 | `TELEGRAM_BOT_TOKEN` | `channels.telegram.botToken` | |
 | `DISCORD_BOT_TOKEN` | `channels.discord.token` | |
 | `SLACK_BOT_TOKEN` | `channels.slack.botToken` | |

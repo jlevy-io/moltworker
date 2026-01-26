@@ -119,11 +119,8 @@ else
     GATEWAY_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)
     echo "Gateway token (generated): $GATEWAY_TOKEN"
 fi
-# Bind mode: 'lan' for local dev, 'auto' for production
-if [ "$CLAWDBOT_DEV_MODE" = "true" ]; then
-    BIND_MODE="lan"
-else
-    BIND_MODE="auto"
-fi
+# Always bind to 0.0.0.0 (lan mode) since Worker connects via container network
+# CLAWDBOT_DEV_MODE only controls allowInsecureAuth, not binding
+BIND_MODE="lan"
 echo "Dev mode: ${CLAWDBOT_DEV_MODE:-false}, Bind mode: $BIND_MODE"
 exec clawdbot gateway --port 18789 --verbose --allow-unconfigured --bind "$BIND_MODE" --token "$GATEWAY_TOKEN"

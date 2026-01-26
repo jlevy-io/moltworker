@@ -159,14 +159,23 @@ async function ensureClawdbotGateway(
   const envVars = buildEnvVars(env);
   const command = buildStartupCommand();
 
-  const process = await sandbox.startProcess(command, {
-    env: Object.keys(envVars).length > 0 ? envVars : undefined,
-  });
+  console.log('Starting process with command:', command);
+  console.log('Environment vars being passed:', Object.keys(envVars));
+
+  let process;
+  try {
+    process = await sandbox.startProcess(command, {
+      env: Object.keys(envVars).length > 0 ? envVars : undefined,
+    });
+    console.log('Process started with id:', process.id, 'status:', process.status);
+  } catch (startErr) {
+    console.error('Failed to start process:', startErr);
+    throw startErr;
+  }
 
   // Wait for the gateway to be ready
   try {
     console.log('Waiting for Clawdbot gateway to be ready on port', CLAWDBOT_PORT);
-    console.log('Environment vars being passed:', Object.keys(envVars));
     
     // Use TCP mode - Clawdbot gateway uses WebSocket, not HTTP health endpoint
     await process.waitForPort(CLAWDBOT_PORT, {
@@ -180,12 +189,18 @@ async function ensureClawdbotGateway(
     if (logs.stdout) console.log('Clawdbot stdout:', logs.stdout);
     if (logs.stderr) console.log('Clawdbot stderr:', logs.stderr);
   } catch (e) {
-    const logs = await process.getLogs();
-    console.error('Clawdbot startup failed. Stderr:', logs.stderr);
-    console.error('Clawdbot startup failed. Stdout:', logs.stdout);
-    throw new Error(
-      `Clawdbot gateway failed to start. Stderr: ${logs.stderr || '(empty)'}`
-    );
+    console.error('waitForPort failed:', e);
+    try {
+      const logs = await process.getLogs();
+      console.error('Clawdbot startup failed. Stderr:', logs.stderr);
+      console.error('Clawdbot startup failed. Stdout:', logs.stdout);
+      throw new Error(
+        `Clawdbot gateway failed to start. Stderr: ${logs.stderr || '(empty)'}`
+      );
+    } catch (logErr) {
+      console.error('Failed to get logs:', logErr);
+      throw e;
+    }
   }
 
   return process;
