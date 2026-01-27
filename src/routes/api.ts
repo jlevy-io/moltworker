@@ -24,11 +24,35 @@ async function waitForProcess(proc: Process, timeoutMs: number = CLI_TIMEOUT_MS)
 
 /**
  * API routes for device management and gateway control
- * All routes are protected by Cloudflare Access
+ * Most routes are protected by Cloudflare Access
  */
 const api = new Hono<AppEnv>();
 
-// Middleware: Verify Cloudflare Access JWT for all API routes
+// GET /api/status - Simple health check (no auth required)
+// Returns whether the clawdbot gateway is running
+api.get('/status', async (c) => {
+  const sandbox = c.get('sandbox');
+  
+  try {
+    const process = await findExistingClawdbotProcess(sandbox);
+    if (!process) {
+      return c.json({ ok: false, status: 'not_running' });
+    }
+    
+    // Process exists, check if it's actually responding
+    // Try to reach the gateway with a short timeout
+    try {
+      await process.waitForPort(18789, { mode: 'tcp', timeout: 5000 });
+      return c.json({ ok: true, status: 'running', processId: process.id });
+    } catch {
+      return c.json({ ok: false, status: 'not_responding', processId: process.id });
+    }
+  } catch (err) {
+    return c.json({ ok: false, status: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+// Middleware: Verify Cloudflare Access JWT for all other API routes
 api.use('*', createAccessMiddleware({ type: 'json' }));
 
 // GET /api/devices - List pending and paired devices
