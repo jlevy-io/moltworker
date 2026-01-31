@@ -38,6 +38,11 @@ export interface MoltbotEnv {
   BROWSER?: Fetcher;
   CDP_SECRET?: string; // Shared secret for CDP endpoint authentication
   WORKER_URL?: string; // Public URL of the worker (for CDP endpoint)
+  // Email CLI configuration
+  HIMALAYA_IMAP_PASSWORD?: string; // App password for Hotmail IMAP (outlook.office365.com)
+  HIMALAYA_EMAIL?: string; // Email address for himalaya (e.g., user@hotmail.com)
+  GOG_ACCOUNT?: string; // Google account email for gog CLI (e.g., user@gmail.com)
+  GOG_KEYRING_PASSWORD?: string; // Password for gog's file-based keyring (container has no OS keyring)
 }
 
 /**

@@ -160,6 +160,22 @@ describe('buildEnvVars', () => {
     expect(result.OPENAI_API_KEY).toBeUndefined();
   });
 
+  it('includes email CLI env vars when set', () => {
+    const env = createMockEnv({
+      HIMALAYA_IMAP_PASSWORD: 'app-password-123',
+      HIMALAYA_EMAIL: 'jaylee9000@hotmail.com',
+      GOG_ACCOUNT: 'jaylee3000@gmail.com',
+      GOG_KEYRING_PASSWORD: 'keyring-secret',
+    });
+    const result = buildEnvVars(env);
+
+    expect(result.HIMALAYA_IMAP_PASSWORD).toBe('app-password-123');
+    expect(result.HIMALAYA_EMAIL).toBe('jaylee9000@hotmail.com');
+    expect(result.GOG_ACCOUNT).toBe('jaylee3000@gmail.com');
+    expect(result.GOG_KEYRING_PASSWORD).toBe('keyring-secret');
+    expect(result.GOG_KEYRING_BACKEND).toBe('file');
+  });
+
   it('handles multiple trailing slashes in AI_GATEWAY_BASE_URL', () => {
     const env = createMockEnv({
       AI_GATEWAY_API_KEY: 'sk-gateway-key',

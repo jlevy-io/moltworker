@@ -114,6 +114,17 @@ if [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ];
     fi
 fi
 
+# Restore gog config from R2 backup if available (OAuth tokens for Google Workspace)
+GOG_CONFIG_DIR="/root/.config/gogcli"
+if [ -d "$BACKUP_DIR/gogcli" ] && [ "$(ls -A $BACKUP_DIR/gogcli 2>/dev/null)" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring gog config from $BACKUP_DIR/gogcli..."
+        mkdir -p "$GOG_CONFIG_DIR"
+        cp -a "$BACKUP_DIR/gogcli/." "$GOG_CONFIG_DIR/"
+        echo "Restored gog config from R2 backup"
+    fi
+fi
+
 # Post-restore: clean up corrupted config that may have come from R2 (see issue #82)
 if [ -f "$CONFIG_FILE" ] && grep -q '"dm":' "$CONFIG_FILE" 2>/dev/null; then
     echo "Detected corrupted config (from R2 restore) with invalid 'dm' key, removing..."
@@ -292,6 +303,39 @@ fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 console.log('Configuration updated successfully');
 console.log('Config:', JSON.stringify(config, null, 2));
 EOFNODE
+
+# ============================================================
+# GENERATE HIMALAYA CONFIG (Hotmail IMAP)
+# ============================================================
+if [ -n "$HIMALAYA_EMAIL" ] && [ -n "$HIMALAYA_IMAP_PASSWORD" ]; then
+    HIMALAYA_CONFIG_DIR="/root/.config/himalaya"
+    mkdir -p "$HIMALAYA_CONFIG_DIR"
+    cat > "$HIMALAYA_CONFIG_DIR/config.toml" << EOFHIMALAYA
+[accounts.hotmail]
+email = "$HIMALAYA_EMAIL"
+default = true
+
+backend.type = "imap"
+backend.host = "outlook.office365.com"
+backend.port = 993
+backend.encryption.type = "tls"
+backend.login = "$HIMALAYA_EMAIL"
+backend.auth.type = "password"
+backend.auth.raw = "$HIMALAYA_IMAP_PASSWORD"
+
+message.send.backend.type = "smtp"
+message.send.backend.host = "smtp-mail.outlook.com"
+message.send.backend.port = 587
+message.send.backend.encryption.type = "start-tls"
+message.send.backend.login = "$HIMALAYA_EMAIL"
+message.send.backend.auth.type = "password"
+message.send.backend.auth.raw = "$HIMALAYA_IMAP_PASSWORD"
+EOFHIMALAYA
+    chmod 600 "$HIMALAYA_CONFIG_DIR/config.toml"
+    echo "Generated himalaya config for $HIMALAYA_EMAIL"
+else
+    echo "Himalaya not configured (HIMALAYA_EMAIL or HIMALAYA_IMAP_PASSWORD not set)"
+fi
 
 # ============================================================
 # START GATEWAY

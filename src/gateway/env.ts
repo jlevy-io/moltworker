@@ -57,5 +57,13 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   if (env.CDP_SECRET) envVars.CDP_SECRET = env.CDP_SECRET;
   if (env.WORKER_URL) envVars.WORKER_URL = env.WORKER_URL;
 
+  // Email CLI configuration
+  if (env.HIMALAYA_IMAP_PASSWORD) envVars.HIMALAYA_IMAP_PASSWORD = env.HIMALAYA_IMAP_PASSWORD;
+  if (env.HIMALAYA_EMAIL) envVars.HIMALAYA_EMAIL = env.HIMALAYA_EMAIL;
+  if (env.GOG_ACCOUNT) envVars.GOG_ACCOUNT = env.GOG_ACCOUNT;
+  if (env.GOG_KEYRING_PASSWORD) envVars.GOG_KEYRING_PASSWORD = env.GOG_KEYRING_PASSWORD;
+  // gog needs file-based keyring in container (no OS keyring available)
+  if (env.GOG_KEYRING_PASSWORD) envVars.GOG_KEYRING_BACKEND = 'file';
+
   return envVars;
 }

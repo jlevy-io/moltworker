@@ -143,3 +143,5 @@ The wrangler secret is `MOLTBOT_GATEWAY_TOKEN` but the container expects `CLAWDB
 
 - `origin` — `jlevy-io/moltworker` (fork, push here)
 - `upstream` — `cloudflare/moltworker` (original, pull updates with `git fetch upstream && git merge upstream/main`)
+
+**IMPORTANT:** `gh pr create` defaults to `upstream` (cloudflare/moltworker), not the fork. Always use `--repo jlevy-io/moltworker` when creating PRs to target the fork.
