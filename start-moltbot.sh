@@ -184,15 +184,16 @@ if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
         export GIT_TERMINAL_PROMPT=0
         git config --global credential.helper ""
 
-        git config user.email "rook@clawd.bot"
-        git config user.name "Rook"
-
-        # Initialize repo if needed
+        # Initialize repo before setting local config (git config without
+        # --global requires a .git directory)
         if [ ! -d .git ]; then
             echo "[git] Initializing new repo..."
             git init
             git checkout -b main
         fi
+
+        git config user.email "rook@clawd.bot"
+        git config user.name "Rook"
 
         # Set up remote with PAT auth
         git remote remove origin 2>/dev/null || true
