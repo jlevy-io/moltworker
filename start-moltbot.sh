@@ -171,41 +171,53 @@ echo "Restore/init complete marker written"
 # ============================================================
 # RESTORE GIT WORKSPACE (if credentials provided)
 # ============================================================
+# Git restore is best-effort — failures must NOT prevent the gateway from starting.
+# The entire section runs in a subshell so set -e doesn't propagate git failures.
 if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
-    echo "Configuring git workspace..."
-    cd /root/clawd
+    echo "Configuring git workspace for $GITHUB_REPO..."
+    # The || operator prevents set -e from killing the parent when the subshell fails
+    (
+        set -e
+        cd /root/clawd
 
-    # Prevent git from ever prompting for credentials (hangs in container)
-    export GIT_TERMINAL_PROMPT=0
-    git config --global credential.helper ""
+        # Prevent git from ever prompting for credentials (hangs in container)
+        export GIT_TERMINAL_PROMPT=0
+        git config --global credential.helper ""
 
-    git config user.email "rook@clawd.bot"
-    git config user.name "Rook"
+        git config user.email "rook@clawd.bot"
+        git config user.name "Rook"
 
-    # Initialize repo if needed
-    if [ ! -d .git ]; then
-        git init
-        git checkout -b main
-    fi
+        # Initialize repo if needed
+        if [ ! -d .git ]; then
+            echo "[git] Initializing new repo..."
+            git init
+            git checkout -b main
+        fi
 
-    # Set up remote with PAT auth
-    git remote remove origin 2>/dev/null || true
-    git remote add origin "https://${GITHUB_PAT}@github.com/${GITHUB_REPO}.git"
+        # Set up remote with PAT auth
+        git remote remove origin 2>/dev/null || true
+        git remote add origin "https://${GITHUB_PAT}@github.com/${GITHUB_REPO}.git"
 
-    # Pull latest — try main, fall back to master
-    # Timeout each git network operation to prevent hanging the boot
-    if timeout 30 git ls-remote --exit-code origin main &>/dev/null; then
-        timeout 60 git fetch origin main
-        git reset --hard origin/main
-        echo "Workspace restored from $GITHUB_REPO (main)"
-    elif timeout 30 git ls-remote --exit-code origin master &>/dev/null; then
-        timeout 60 git fetch origin master
-        git checkout -B main origin/master  # normalize to main locally
-        echo "Workspace restored from $GITHUB_REPO (master→main)"
-    else
-        echo "Remote repo is empty or unreachable — will push on first sync"
-    fi
-
+        # Pull latest — try main, fall back to master
+        # Timeout each git network operation to prevent hanging the boot
+        echo "[git] Checking remote branches..."
+        if timeout 30 git ls-remote --exit-code origin main 2>&1; then
+            echo "[git] Fetching main branch..."
+            timeout 60 git fetch origin main 2>&1
+            git reset --hard origin/main
+            echo "[git] Workspace restored from $GITHUB_REPO (main)"
+        elif timeout 30 git ls-remote --exit-code origin master 2>&1; then
+            echo "[git] Fetching master branch..."
+            timeout 60 git fetch origin master 2>&1
+            git checkout -B main origin/master  # normalize to main locally
+            echo "[git] Workspace restored from $GITHUB_REPO (master→main)"
+        else
+            echo "[git] Remote repo is empty or unreachable — will push on first sync"
+        fi
+    ) || {
+        echo "[git] WARNING: Git workspace restore failed with exit code $?"
+        echo "[git] Gateway will start without workspace restore. Check GITHUB_PAT and GITHUB_REPO."
+    }
     cd /root/clawd
 else
     echo "Git workspace not configured (GITHUB_PAT or GITHUB_REPO not set)"
