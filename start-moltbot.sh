@@ -308,11 +308,13 @@ EOFNODE
 # WRITE GOG OAUTH CLIENT CREDENTIALS
 # ============================================================
 if [ -n "$GOG_CLIENT_SECRET_JSON" ]; then
-    GOG_CONFIG_DIR="/root/.config/gogcli"
-    mkdir -p "$GOG_CONFIG_DIR"
-    echo "$GOG_CLIENT_SECRET_JSON" | base64 -d > "$GOG_CONFIG_DIR/credentials.json"
-    chmod 600 "$GOG_CONFIG_DIR/credentials.json"
-    echo "Wrote gog OAuth client credentials"
+    # Decode the base64 JSON to a temp file and let gog process it
+    # (gog auth credentials transforms Google's format into its own config)
+    GOG_TEMP="/tmp/gog_client_secret.json"
+    echo "$GOG_CLIENT_SECRET_JSON" | base64 -d > "$GOG_TEMP"
+    gog auth credentials "$GOG_TEMP" --no-input 2>&1 || echo "Warning: gog auth credentials failed"
+    rm -f "$GOG_TEMP"
+    echo "Wrote gog OAuth client credentials via gog auth credentials"
 else
     echo "Gog client credentials not configured (GOG_CLIENT_SECRET_JSON not set)"
 fi
