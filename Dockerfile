@@ -19,6 +19,22 @@ RUN npm install -g pnpm
 RUN npm install -g clawdbot@2026.1.24-3 \
     && clawdbot --version
 
+# Install himalaya (IMAP email CLI) - pinned version for reproducible builds
+ENV HIMALAYA_VERSION=1.1.0
+RUN curl -fsSL https://github.com/pimalaya/himalaya/releases/download/v${HIMALAYA_VERSION}/himalaya.x86_64-linux.tgz -o /tmp/himalaya.tgz \
+    && tar -xzf /tmp/himalaya.tgz -C /usr/local/bin himalaya \
+    && rm /tmp/himalaya.tgz \
+    && chmod +x /usr/local/bin/himalaya \
+    && himalaya --version
+
+# Install gog (Google Workspace CLI) - pinned version for reproducible builds
+ENV GOG_VERSION=0.9.0
+RUN curl -fsSL https://github.com/steipete/gogcli/releases/download/v${GOG_VERSION}/gogcli_${GOG_VERSION}_linux_amd64.tar.gz -o /tmp/gog.tar.gz \
+    && tar -xzf /tmp/gog.tar.gz -C /usr/local/bin gog \
+    && rm /tmp/gog.tar.gz \
+    && chmod +x /usr/local/bin/gog \
+    && gog --version
+
 # Create moltbot directories (paths still use clawdbot until upstream renames)
 # Templates are stored in /root/.clawdbot-templates for initialization
 RUN mkdir -p /root/.clawdbot \
