@@ -175,6 +175,7 @@ echo "Restore/init complete marker written"
 # The entire section runs in a subshell so set -e doesn't propagate git failures.
 if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
     echo "Configuring git workspace for $GITHUB_REPO..."
+    # The || operator prevents set -e from killing the parent when the subshell fails
     (
         set -e
         cd /root/clawd
@@ -213,12 +214,10 @@ if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
         else
             echo "[git] Remote repo is empty or unreachable — will push on first sync"
         fi
-    )
-    GIT_EXIT=$?
-    if [ $GIT_EXIT -ne 0 ]; then
-        echo "[git] WARNING: Git workspace restore failed with exit code $GIT_EXIT"
+    ) || {
+        echo "[git] WARNING: Git workspace restore failed with exit code $?"
         echo "[git] Gateway will start without workspace restore. Check GITHUB_PAT and GITHUB_REPO."
-    fi
+    }
     cd /root/clawd
 else
     echo "Git workspace not configured (GITHUB_PAT or GITHUB_REPO not set)"

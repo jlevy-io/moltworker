@@ -43,9 +43,9 @@ RUN mkdir -p /root/.clawdbot \
     && mkdir -p /root/clawd/skills
 
 # Copy startup script
-ARG CACHE_BUST=2026-01-31-git-fault-tolerant
+ARG CACHE_BUST=2026-01-31-git-fault-tolerant-v2
 COPY start-moltbot.sh /usr/local/bin/start-moltbot.sh
-RUN chmod +x /usr/local/bin/start-moltbot.sh
+RUN chmod +x /usr/local/bin/start-moltbot.sh && echo "build: $CACHE_BUST" > /usr/local/bin/.build-info
 
 # Copy default configuration template
 COPY moltbot.json.template /root/.clawdbot-templates/moltbot.json.template
