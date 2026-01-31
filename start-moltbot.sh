@@ -305,6 +305,19 @@ console.log('Config:', JSON.stringify(config, null, 2));
 EOFNODE
 
 # ============================================================
+# WRITE GOG OAUTH CLIENT CREDENTIALS
+# ============================================================
+if [ -n "$GOG_CLIENT_SECRET_JSON" ]; then
+    GOG_CONFIG_DIR="/root/.config/gogcli"
+    mkdir -p "$GOG_CONFIG_DIR"
+    echo "$GOG_CLIENT_SECRET_JSON" | base64 -d > "$GOG_CONFIG_DIR/credentials.json"
+    chmod 600 "$GOG_CONFIG_DIR/credentials.json"
+    echo "Wrote gog OAuth client credentials"
+else
+    echo "Gog client credentials not configured (GOG_CLIENT_SECRET_JSON not set)"
+fi
+
+# ============================================================
 # GENERATE HIMALAYA CONFIG (Hotmail IMAP)
 # ============================================================
 if [ -n "$HIMALAYA_EMAIL" ] && [ -n "$HIMALAYA_IMAP_PASSWORD" ]; then

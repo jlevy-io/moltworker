@@ -163,17 +163,19 @@ describe('buildEnvVars', () => {
   it('includes email CLI env vars when set', () => {
     const env = createMockEnv({
       HIMALAYA_IMAP_PASSWORD: 'app-password-123',
-      HIMALAYA_EMAIL: 'jaylee9000@hotmail.com',
-      GOG_ACCOUNT: 'jaylee3000@gmail.com',
+      HIMALAYA_EMAIL: 'user@hotmail.com',
+      GOG_ACCOUNT: 'user@gmail.com',
       GOG_KEYRING_PASSWORD: 'keyring-secret',
+      GOG_CLIENT_SECRET_JSON: 'eyJpbnN0YWxsZWQiOnt9fQ==',
     });
     const result = buildEnvVars(env);
 
     expect(result.HIMALAYA_IMAP_PASSWORD).toBe('app-password-123');
-    expect(result.HIMALAYA_EMAIL).toBe('jaylee9000@hotmail.com');
-    expect(result.GOG_ACCOUNT).toBe('jaylee3000@gmail.com');
+    expect(result.HIMALAYA_EMAIL).toBe('user@hotmail.com');
+    expect(result.GOG_ACCOUNT).toBe('user@gmail.com');
     expect(result.GOG_KEYRING_PASSWORD).toBe('keyring-secret');
     expect(result.GOG_KEYRING_BACKEND).toBe('file');
+    expect(result.GOG_CLIENT_SECRET_JSON).toBe('eyJpbnN0YWxsZWQiOnt9fQ==');
   });
 
   it('handles multiple trailing slashes in AI_GATEWAY_BASE_URL', () => {
