@@ -4,7 +4,7 @@ FROM docker.io/cloudflare/sandbox:0.7.0
 # The base image has Node 20, we need to replace it with Node 22
 # Using direct binary download for reliability
 ENV NODE_VERSION=22.13.1
-RUN apt-get update && apt-get install -y xz-utils ca-certificates rsync \
+RUN apt-get update && apt-get install -y xz-utils ca-certificates rsync git \
     && curl -fsSLk https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz -o /tmp/node.tar.xz \
     && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
     && rm /tmp/node.tar.xz \
@@ -43,7 +43,7 @@ RUN mkdir -p /root/.clawdbot \
     && mkdir -p /root/clawd/skills
 
 # Copy startup script
-ARG CACHE_BUST=2026-01-31-sync-safety-gate
+ARG CACHE_BUST=2026-01-31-git-workspace-backup
 COPY start-moltbot.sh /usr/local/bin/start-moltbot.sh
 RUN chmod +x /usr/local/bin/start-moltbot.sh
 

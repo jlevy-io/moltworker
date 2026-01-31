@@ -66,5 +66,9 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   if (env.GOG_KEYRING_PASSWORD) envVars.GOG_KEYRING_BACKEND = 'file';
   if (env.GOG_CLIENT_SECRET_JSON) envVars.GOG_CLIENT_SECRET_JSON = env.GOG_CLIENT_SECRET_JSON;
 
+  // Git workspace backup
+  if (env.GITHUB_PAT) envVars.GITHUB_PAT = env.GITHUB_PAT;
+  if (env.GITHUB_REPO) envVars.GITHUB_REPO = env.GITHUB_REPO;
+
   return envVars;
 }

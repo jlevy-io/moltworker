@@ -178,6 +178,25 @@ describe('buildEnvVars', () => {
     expect(result.GOG_CLIENT_SECRET_JSON).toBe('eyJpbnN0YWxsZWQiOnt9fQ==');
   });
 
+  it('includes GITHUB_PAT and GITHUB_REPO when set', () => {
+    const env = createMockEnv({
+      GITHUB_PAT: 'ghp_test123',
+      GITHUB_REPO: 'user/workspace',
+    });
+    const result = buildEnvVars(env);
+
+    expect(result.GITHUB_PAT).toBe('ghp_test123');
+    expect(result.GITHUB_REPO).toBe('user/workspace');
+  });
+
+  it('omits GITHUB_PAT and GITHUB_REPO when not set', () => {
+    const env = createMockEnv();
+    const result = buildEnvVars(env);
+
+    expect(result.GITHUB_PAT).toBeUndefined();
+    expect(result.GITHUB_REPO).toBeUndefined();
+  });
+
   it('handles multiple trailing slashes in AI_GATEWAY_BASE_URL', () => {
     const env = createMockEnv({
       AI_GATEWAY_API_KEY: 'sk-gateway-key',

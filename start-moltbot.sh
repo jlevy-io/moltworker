@@ -169,6 +169,43 @@ touch "$CONFIG_DIR/.restore-complete"
 echo "Restore/init complete marker written"
 
 # ============================================================
+# RESTORE GIT WORKSPACE (if credentials provided)
+# ============================================================
+if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
+    echo "Configuring git workspace..."
+    cd /root/clawd
+    git config user.email "rook@clawd.bot"
+    git config user.name "Rook"
+
+    # Initialize repo if needed
+    if [ ! -d .git ]; then
+        git init
+        git checkout -b main
+    fi
+
+    # Set up remote with PAT auth
+    git remote remove origin 2>/dev/null || true
+    git remote add origin "https://${GITHUB_PAT}@github.com/${GITHUB_REPO}.git"
+
+    # Pull latest — try main, fall back to master
+    if git ls-remote --exit-code origin main &>/dev/null; then
+        git fetch origin main
+        git reset --hard origin/main
+        echo "Workspace restored from $GITHUB_REPO (main)"
+    elif git ls-remote --exit-code origin master &>/dev/null; then
+        git fetch origin master
+        git checkout -B main origin/master  # normalize to main locally
+        echo "Workspace restored from $GITHUB_REPO (master→main)"
+    else
+        echo "Remote repo is empty — will push on first sync"
+    fi
+
+    cd /root/clawd
+else
+    echo "Git workspace not configured (GITHUB_PAT or GITHUB_REPO not set)"
+fi
+
+# ============================================================
 # UPDATE CONFIG FROM ENVIRONMENT VARIABLES
 # ============================================================
 node << EOFNODE

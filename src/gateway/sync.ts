@@ -4,6 +4,52 @@ import { R2_MOUNT_PATH, MIN_BOOT_AGE_SECONDS } from '../config';
 import { mountR2Storage } from './r2';
 import { waitForProcess } from './utils';
 
+/**
+ * Sync the /root/clawd workspace to GitHub via git add/commit/push.
+ *
+ * Called by the cron handler alongside syncToR2(). If GITHUB_PAT or GITHUB_REPO
+ * are not configured, returns early with an error (not logged as failure by the caller).
+ */
+export async function gitSync(sandbox: Sandbox, env: MoltbotEnv): Promise<SyncResult> {
+  if (!env.GITHUB_PAT || !env.GITHUB_REPO) {
+    return { success: false, error: 'Git backup is not configured' };
+  }
+
+  // Stage + commit only if there are uncommitted changes, then push.
+  // The git remote is already configured by start-moltbot.sh at boot.
+  const cmd = [
+    'cd /root/clawd',
+    '&& (git diff --quiet HEAD 2>/dev/null && git diff --cached --quiet HEAD 2>/dev/null || (git add -A && git commit -m "auto: sync $(date -Iseconds)"))',
+    '&& git push origin HEAD 2>&1',
+  ].join(' ');
+
+  try {
+    const proc = await sandbox.startProcess(cmd);
+    await waitForProcess(proc, 30000);
+
+    const logs = await proc.getLogs();
+    const output = (logs.stdout || '') + (logs.stderr || '');
+
+    // git diff --quiet exits 0 when clean, and our chain still succeeds.
+    // git push prints to stderr, so check combined output for common failures.
+    if (output.includes('fatal:') || output.includes('error:')) {
+      return {
+        success: false,
+        error: 'Git sync failed',
+        details: output.slice(0, 500),
+      };
+    }
+
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: 'Git sync error',
+      details: err instanceof Error ? err.message : 'Unknown error',
+    };
+  }
+}
+
 export interface SyncOptions {
   /** Bypass container-age and meaningful-state checks (used by admin manual sync).
    *  The restore-complete check is NEVER bypassed. */
