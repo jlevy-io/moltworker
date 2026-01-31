@@ -222,7 +222,7 @@ adminApi.get('/storage', async (c) => {
 adminApi.post('/storage/sync', async (c) => {
   const sandbox = c.get('sandbox');
   
-  const result = await syncToR2(sandbox, c.env);
+  const result = await syncToR2(sandbox, c.env, { force: true });
   
   if (result.success) {
     return c.json({

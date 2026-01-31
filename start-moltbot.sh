@@ -28,6 +28,12 @@ echo "Backup directory: $BACKUP_DIR"
 # Create config directory
 mkdir -p "$CONFIG_DIR"
 
+# Write boot timestamp marker immediately — the Worker uses this to enforce
+# a minimum container age before allowing R2 sync (prevents fresh containers
+# from overwriting good backup data).
+date +%s > "$CONFIG_DIR/.boot-timestamp"
+echo "Boot timestamp written: $(cat $CONFIG_DIR/.boot-timestamp)"
+
 # Clean up corrupted config with invalid 'dm' key (see issue #82)
 # If this config was synced to R2, also reset the sync timestamp
 # so the corrupted backup doesn't get restored again.
@@ -156,6 +162,11 @@ EOFCONFIG
 else
     echo "Using existing config"
 fi
+
+# Mark restore/init as complete — the Worker will refuse to sync until this
+# marker exists, preventing sync during a partial restore or init.
+touch "$CONFIG_DIR/.restore-complete"
+echo "Restore/init complete marker written"
 
 # ============================================================
 # UPDATE CONFIG FROM ENVIRONMENT VARIABLES
