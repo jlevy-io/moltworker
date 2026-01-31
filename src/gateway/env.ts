@@ -64,6 +64,7 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   if (env.GOG_KEYRING_PASSWORD) envVars.GOG_KEYRING_PASSWORD = env.GOG_KEYRING_PASSWORD;
   // gog needs file-based keyring in container (no OS keyring available)
   if (env.GOG_KEYRING_PASSWORD) envVars.GOG_KEYRING_BACKEND = 'file';
+  if (env.GOG_CLIENT_SECRET_JSON) envVars.GOG_CLIENT_SECRET_JSON = env.GOG_CLIENT_SECRET_JSON;
 
   return envVars;
 }

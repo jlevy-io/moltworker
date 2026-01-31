@@ -43,6 +43,7 @@ export interface MoltbotEnv {
   HIMALAYA_EMAIL?: string; // Email address for himalaya (e.g., user@hotmail.com)
   GOG_ACCOUNT?: string; // Google account email for gog CLI (e.g., user@gmail.com)
   GOG_KEYRING_PASSWORD?: string; // Password for gog's file-based keyring (container has no OS keyring)
+  GOG_CLIENT_SECRET_JSON?: string; // Base64-encoded Google OAuth client_secret JSON for gog
 }
 
 /**
