@@ -43,7 +43,7 @@ RUN mkdir -p /root/.clawdbot \
     && mkdir -p /root/clawd/skills
 
 # Copy startup script
-ARG CACHE_BUST=2026-01-31-git-no-prompt
+ARG CACHE_BUST=2026-01-31-git-fault-tolerant
 COPY start-moltbot.sh /usr/local/bin/start-moltbot.sh
 RUN chmod +x /usr/local/bin/start-moltbot.sh
 
