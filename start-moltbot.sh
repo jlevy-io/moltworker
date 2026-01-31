@@ -174,6 +174,11 @@ echo "Restore/init complete marker written"
 if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
     echo "Configuring git workspace..."
     cd /root/clawd
+
+    # Prevent git from ever prompting for credentials (hangs in container)
+    export GIT_TERMINAL_PROMPT=0
+    git config --global credential.helper ""
+
     git config user.email "rook@clawd.bot"
     git config user.name "Rook"
 
@@ -188,16 +193,17 @@ if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
     git remote add origin "https://${GITHUB_PAT}@github.com/${GITHUB_REPO}.git"
 
     # Pull latest — try main, fall back to master
-    if git ls-remote --exit-code origin main &>/dev/null; then
-        git fetch origin main
+    # Timeout each git network operation to prevent hanging the boot
+    if timeout 30 git ls-remote --exit-code origin main &>/dev/null; then
+        timeout 60 git fetch origin main
         git reset --hard origin/main
         echo "Workspace restored from $GITHUB_REPO (main)"
-    elif git ls-remote --exit-code origin master &>/dev/null; then
-        git fetch origin master
+    elif timeout 30 git ls-remote --exit-code origin master &>/dev/null; then
+        timeout 60 git fetch origin master
         git checkout -B main origin/master  # normalize to main locally
         echo "Workspace restored from $GITHUB_REPO (master→main)"
     else
-        echo "Remote repo is empty — will push on first sync"
+        echo "Remote repo is empty or unreachable — will push on first sync"
     fi
 
     cd /root/clawd
