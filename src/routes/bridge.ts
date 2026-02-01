@@ -157,7 +157,8 @@ bridge.get('/file', async (c) => {
     await waitForProcess(proc);
     const logs = await proc.getLogs();
 
-    if (proc.exitCode !== 0) {
+    // exitCode is null while running; treat null and 0 as success
+    if (proc.exitCode != null && proc.exitCode !== 0) {
       return c.json({
         error: 'File read failed',
         stderr: logs.stderr,
@@ -193,7 +194,7 @@ bridge.put('/file', async (c) => {
     await waitForProcess(proc);
     const logs = await proc.getLogs();
 
-    if (proc.exitCode !== 0) {
+    if (proc.exitCode != null && proc.exitCode !== 0) {
       return c.json({
         error: 'File write failed',
         stderr: logs.stderr,
