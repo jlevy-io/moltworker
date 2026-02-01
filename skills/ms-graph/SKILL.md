@@ -19,14 +19,14 @@ Access `jaylee9000@hotmail.com` (and other personal Microsoft accounts) via the 
 Run the auth flow once. Tokens persist across container restarts via R2 backup.
 
 ```bash
-cd /root/clawd/skills/ms-graph && node src/tools.js auth-start
+cd /root/clawd/skills/ms-graph && node dist/tools.js auth-start
 ```
 
 This outputs a URL and code. The user visits the URL and enters the code to authorize. After approval, tokens are cached at `~/.ms-graph-tokens.json`.
 
 Check auth status:
 ```bash
-cd /root/clawd/skills/ms-graph && node src/tools.js auth-status
+cd /root/clawd/skills/ms-graph && node dist/tools.js auth-status
 ```
 
 ## Commands
@@ -39,15 +39,15 @@ cd /root/clawd/skills/ms-graph
 ### List Mail Folders
 
 ```bash
-node src/tools.js mail-folders
+node dist/tools.js mail-folders
 ```
 
 ### List Emails
 
 ```bash
-node src/tools.js mail-list
-node src/tools.js mail-list --folder inbox --top 10 --skip 0
-node src/tools.js mail-list --folder sentitems --top 5
+node dist/tools.js mail-list
+node dist/tools.js mail-list --folder inbox --top 10 --skip 0
+node dist/tools.js mail-list --folder sentitems --top 5
 ```
 
 Well-known folder names: `inbox`, `sentitems`, `drafts`, `deleteditems`, `junkemail`, `archive`.
@@ -55,7 +55,7 @@ Well-known folder names: `inbox`, `sentitems`, `drafts`, `deleteditems`, `junkem
 ### Read a Single Email
 
 ```bash
-node src/tools.js mail-get <message-id>
+node dist/tools.js mail-get <message-id>
 ```
 
 Returns full message with body text.
@@ -64,16 +64,16 @@ Returns full message with body text.
 
 Uses Microsoft's KQL (Keyword Query Language):
 ```bash
-node src/tools.js mail-search from:john@example.com
-node src/tools.js mail-search subject:invoice
-node src/tools.js mail-search "meeting notes" --top 10
+node dist/tools.js mail-search from:john@example.com
+node dist/tools.js mail-search subject:invoice
+node dist/tools.js mail-search "meeting notes" --top 10
 ```
 
 ### Send Email
 
 Pipe JSON to stdin:
 ```bash
-echo '{"to":["recipient@example.com"],"subject":"Test","body":"Hello from Rook"}' | node src/tools.js mail-send
+echo '{"to":["recipient@example.com"],"subject":"Test","body":"Hello from Rook"}' | node dist/tools.js mail-send
 ```
 
 Full options:
@@ -94,18 +94,18 @@ Full options:
 
 Single message to stdout:
 ```bash
-node src/tools.js mail-export <message-id> > message.eml
+node dist/tools.js mail-export <message-id> > message.eml
 ```
 
 Bulk export to directory:
 ```bash
-node src/tools.js mail-export "id1,id2,id3" /tmp/exports
+node dist/tools.js mail-export "id1,id2,id3" /tmp/exports
 ```
 
 ### List Attachments
 
 ```bash
-node src/tools.js mail-attachments <message-id>
+node dist/tools.js mail-attachments <message-id>
 ```
 
 ## Token Persistence
@@ -126,5 +126,5 @@ node src/tools.js mail-attachments <message-id>
 ## Clear Tokens
 
 ```bash
-node src/tools.js auth-clear
+node dist/tools.js auth-clear
 ```

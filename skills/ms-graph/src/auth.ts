@@ -99,7 +99,7 @@ export async function startDeviceCodeAuth(): Promise<{
 
   const authPromise = pca.acquireTokenByDeviceCode({
     scopes: SCOPES,
-    deviceCodeCallback: (response) => {
+    deviceCodeCallback: (response: { userCode: string; verificationUri: string; message: string }) => {
       resolveDeviceCode({
         userCode: response.userCode,
         verificationUri: response.verificationUri,
@@ -112,7 +112,7 @@ export async function startDeviceCodeAuth(): Promise<{
   const deviceCodeInfo = await deviceCodePromise;
 
   // Wrap authPromise to save cache on success
-  const wrappedAuthPromise = authPromise.then((result) => {
+  const wrappedAuthPromise = authPromise.then((result: msal.AuthenticationResult | null) => {
     saveCache(pca);
     return result;
   });
