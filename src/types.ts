@@ -37,6 +37,7 @@ export interface MoltbotEnv {
   // Browser Rendering binding for CDP shim
   BROWSER?: Fetcher;
   CDP_SECRET?: string; // Shared secret for CDP endpoint authentication
+  BRIDGE_SECRET?: string; // Shared secret for MCP bridge endpoint authentication
   WORKER_URL?: string; // Public URL of the worker (for CDP endpoint)
   // Email CLI configuration
   HIMALAYA_IMAP_PASSWORD?: string; // App password for Hotmail IMAP (outlook.office365.com)
