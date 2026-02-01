@@ -31,6 +31,16 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /**
+ * Wait for a sandbox process to finish (polls status, same pattern as debug routes).
+ */
+async function waitForProcess(proc: { status: string }, maxAttempts = 20): Promise<void> {
+  for (let i = 0; i < maxAttempts; i++) {
+    if (proc.status !== 'running') return;
+    await new Promise(r => setTimeout(r, 250));
+  }
+}
+
+/**
  * Auth middleware — validates `?secret=` against BRIDGE_SECRET.
  */
 bridge.use('*', async (c, next) => {
@@ -144,6 +154,7 @@ bridge.get('/file', async (c) => {
   const sandbox = c.get('sandbox');
   try {
     const proc = await sandbox.startProcess(`cat '${filePath}'`);
+    await waitForProcess(proc);
     const logs = await proc.getLogs();
 
     if (proc.exitCode !== 0) {
@@ -179,6 +190,7 @@ bridge.put('/file', async (c) => {
     const dir = filePath.substring(0, filePath.lastIndexOf('/'));
     const cmd = `mkdir -p '${dir}' && echo '${encoded}' | base64 -d > '${filePath}'`;
     const proc = await sandbox.startProcess(cmd);
+    await waitForProcess(proc);
     const logs = await proc.getLogs();
 
     if (proc.exitCode !== 0) {
