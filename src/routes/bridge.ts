@@ -76,27 +76,28 @@ bridge.get('/', async (c) => {
 
   const sandbox = c.get('sandbox');
 
-  // Ensure Connection: upgrade header is present. Cloudflare's HTTP/2→HTTP/1.1
-  // translation or edge proxying can strip hop-by-hop headers like Connection.
-  // The Sandbox SDK's fetch() checks for both Upgrade and Connection headers to
-  // route through its WebSocket path — without Connection, it falls through to
-  // the HTTP path on the wrong port and hangs.
+  // Build a clean request for the gateway inside the container.
+  // The original request URL is /bridge?secret=..., but the gateway expects
+  // connections at / with ?token=GATEWAY_TOKEN for authentication. We rewrite
+  // the URL so the gateway sees the same auth pattern as the webchat, while
+  // ensuring WebSocket upgrade headers (including Connection) are present.
+  const gatewayUrl = new URL(c.req.url);
+  gatewayUrl.pathname = '/';
+  gatewayUrl.searchParams.delete('secret');
+  const gatewayToken = c.env.MOLTBOT_GATEWAY_TOKEN;
+  if (gatewayToken) {
+    gatewayUrl.searchParams.set('token', gatewayToken);
+  }
+
   const headers = new Headers(c.req.raw.headers);
   if (!headers.get('Connection')?.toLowerCase().includes('upgrade')) {
     headers.set('Connection', 'Upgrade');
   }
-  const request = new Request(c.req.raw, { headers });
+  const request = new Request(gatewayUrl.toString(), { headers });
 
-  console.log('[BRIDGE] WebSocket upgrade request');
-  console.log('[BRIDGE] Headers:', JSON.stringify({
-    upgrade: request.headers.get('Upgrade'),
-    connection: request.headers.get('Connection'),
-    secWebSocketKey: request.headers.get('Sec-WebSocket-Key'),
-    secWebSocketVersion: request.headers.get('Sec-WebSocket-Version'),
-  }));
+  console.log('[BRIDGE] WebSocket upgrade request, rewritten to', gatewayUrl.pathname + gatewayUrl.search.replace(/token=[^&]+/, 'token=***'));
 
   // Connect to gateway inside the container
-  console.log('[BRIDGE] Calling wsConnect to port', MOLTBOT_PORT);
   let containerResponse: Response;
   try {
     containerResponse = await sandbox.wsConnect(request, MOLTBOT_PORT);
