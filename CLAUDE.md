@@ -108,6 +108,10 @@ suppressConsole()                // Silence console in tests
 - Tests: `describe`/`it`/`expect` (vitest globals)
 - No client-side tests (excluded in vitest config)
 
+## Working with External APIs
+
+**Always use context7 first.** Before implementing against any external API or library (Cloudflare Sandbox, MCP protocols, Hono, etc.), use the context7 MCP tools (`resolve-library-id` → `query-docs`) to pull current documentation. LLM training data goes stale fast — current docs prevent wasted debugging cycles from outdated assumptions.
+
 ## Gotchas
 
 ### Docker image caching
