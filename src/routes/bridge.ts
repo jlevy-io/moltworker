@@ -75,7 +75,17 @@ bridge.get('/', async (c) => {
   }
 
   const sandbox = c.get('sandbox');
-  const request = c.req.raw;
+
+  // Ensure Connection: upgrade header is present. Cloudflare's HTTP/2→HTTP/1.1
+  // translation or edge proxying can strip hop-by-hop headers like Connection.
+  // The Sandbox SDK's fetch() checks for both Upgrade and Connection headers to
+  // route through its WebSocket path — without Connection, it falls through to
+  // the HTTP path on the wrong port and hangs.
+  const headers = new Headers(c.req.raw.headers);
+  if (!headers.get('Connection')?.toLowerCase().includes('upgrade')) {
+    headers.set('Connection', 'Upgrade');
+  }
+  const request = new Request(c.req.raw, { headers });
 
   console.log('[BRIDGE] WebSocket upgrade request');
 
