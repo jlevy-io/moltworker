@@ -88,19 +88,36 @@ bridge.get('/', async (c) => {
   const request = new Request(c.req.raw, { headers });
 
   console.log('[BRIDGE] WebSocket upgrade request');
+  console.log('[BRIDGE] Headers:', JSON.stringify({
+    upgrade: request.headers.get('Upgrade'),
+    connection: request.headers.get('Connection'),
+    secWebSocketKey: request.headers.get('Sec-WebSocket-Key'),
+    secWebSocketVersion: request.headers.get('Sec-WebSocket-Version'),
+  }));
 
   // Connect to gateway inside the container
-  const containerResponse = await sandbox.wsConnect(request, MOLTBOT_PORT);
+  console.log('[BRIDGE] Calling wsConnect to port', MOLTBOT_PORT);
+  let containerResponse: Response;
+  try {
+    containerResponse = await sandbox.wsConnect(request, MOLTBOT_PORT);
+  } catch (err) {
+    console.error('[BRIDGE] wsConnect threw:', err);
+    return c.json({ error: 'wsConnect failed', details: String(err) }, 502);
+  }
+  console.log('[BRIDGE] wsConnect returned, status:', containerResponse.status, 'hasWebSocket:', !!containerResponse.webSocket);
+
   const containerWs = containerResponse.webSocket;
   if (!containerWs) {
-    console.error('[BRIDGE] No WebSocket in container response');
-    return c.json({ error: 'Gateway WebSocket unavailable' }, 502);
+    const body = await containerResponse.text().catch(() => '(unreadable)');
+    console.error('[BRIDGE] No WebSocket in container response, status:', containerResponse.status, 'body:', body);
+    return c.json({ error: 'Gateway WebSocket unavailable', status: containerResponse.status, body }, 502);
   }
 
   // Create WebSocket pair for the client
   const [clientWs, serverWs] = Object.values(new WebSocketPair());
   serverWs.accept();
   containerWs.accept();
+  console.log('[BRIDGE] Relay established');
 
   // Bidirectional relay (no message transformation)
   serverWs.addEventListener('message', (event) => {
