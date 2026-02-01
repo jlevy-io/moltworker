@@ -45,6 +45,8 @@ export interface MoltbotEnv {
   GOG_ACCOUNT?: string; // Google account email for gog CLI (e.g., user@gmail.com)
   GOG_KEYRING_PASSWORD?: string; // Password for gog's file-based keyring (container has no OS keyring)
   GOG_CLIENT_SECRET_JSON?: string; // Base64-encoded Google OAuth client_secret JSON for gog
+  // Microsoft Graph API (ms-graph skill)
+  MS_GRAPH_CLIENT_ID?: string; // Azure App Registration client ID for device code flow
   // Git workspace backup (auto-sync /root/clawd to GitHub)
   GITHUB_PAT?: string; // Personal access token for pushing workspace to GitHub
   GITHUB_REPO?: string; // GitHub repo (e.g., 'user/repo') for workspace backup

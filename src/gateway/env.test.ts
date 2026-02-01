@@ -178,6 +178,20 @@ describe('buildEnvVars', () => {
     expect(result.GOG_CLIENT_SECRET_JSON).toBe('eyJpbnN0YWxsZWQiOnt9fQ==');
   });
 
+  it('includes MS_GRAPH_CLIENT_ID when set', () => {
+    const env = createMockEnv({
+      MS_GRAPH_CLIENT_ID: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    });
+    const result = buildEnvVars(env);
+    expect(result.MS_GRAPH_CLIENT_ID).toBe('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+  });
+
+  it('omits MS_GRAPH_CLIENT_ID when not set', () => {
+    const env = createMockEnv();
+    const result = buildEnvVars(env);
+    expect(result.MS_GRAPH_CLIENT_ID).toBeUndefined();
+  });
+
   it('includes GITHUB_PAT and GITHUB_REPO when set', () => {
     const env = createMockEnv({
       GITHUB_PAT: 'ghp_test123',
