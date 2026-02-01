@@ -131,6 +131,17 @@ if [ -d "$BACKUP_DIR/gogcli" ] && [ "$(ls -A $BACKUP_DIR/gogcli 2>/dev/null)" ];
     fi
 fi
 
+# Restore ms-graph token cache from R2 backup if available
+MS_GRAPH_TOKEN_FILE="/root/.ms-graph-tokens.json"
+if [ -f "$BACKUP_DIR/ms-graph-tokens.json" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring ms-graph tokens from R2 backup..."
+        cp -f "$BACKUP_DIR/ms-graph-tokens.json" "$MS_GRAPH_TOKEN_FILE"
+        chmod 600 "$MS_GRAPH_TOKEN_FILE"
+        echo "Restored ms-graph token cache from R2 backup"
+    fi
+fi
+
 # Post-restore: clean up corrupted config that may have come from R2 (see issue #82)
 if [ -f "$CONFIG_FILE" ] && grep -q '"dm":' "$CONFIG_FILE" 2>/dev/null; then
     echo "Detected corrupted config (from R2 restore) with invalid 'dm' key, removing..."
@@ -417,6 +428,21 @@ EOFHIMALAYA
     echo "Generated himalaya config for $HIMALAYA_EMAIL"
 else
     echo "Himalaya not configured (HIMALAYA_EMAIL or HIMALAYA_IMAP_PASSWORD not set)"
+fi
+
+# ============================================================
+# INSTALL SKILL DEPENDENCIES
+# ============================================================
+# Install npm dependencies for skills that ship their own Node.js code.
+# This runs at startup (not in Dockerfile) so R2-restored skills get deps too.
+MS_GRAPH_SKILL_DIR="$SKILLS_DIR/ms-graph"
+if [ -f "$MS_GRAPH_SKILL_DIR/package.json" ]; then
+    echo "Installing ms-graph skill dependencies..."
+    (cd "$MS_GRAPH_SKILL_DIR" && npm install --production 2>&1) || {
+        echo "WARNING: ms-graph skill npm install failed"
+    }
+else
+    echo "ms-graph skill not found, skipping dependency install"
 fi
 
 # ============================================================

@@ -194,6 +194,7 @@ export async function syncToR2(sandbox: Sandbox, env: MoltbotEnv, options: SyncO
     `/root/.clawdbot/ ${R2_MOUNT_PATH}/clawdbot/`,
     `&& rsync -r --no-times /root/clawd/skills/ ${R2_MOUNT_PATH}/skills/`,
     `&& ([ -d /root/.config/gogcli ] && rsync -r --no-times /root/.config/gogcli/ ${R2_MOUNT_PATH}/gogcli/ || true)`,
+    `&& ([ -f /root/.ms-graph-tokens.json ] && cp /root/.ms-graph-tokens.json ${R2_MOUNT_PATH}/ms-graph-tokens.json || true)`,
     `&& date -Iseconds > ${R2_MOUNT_PATH}/.last-sync`,
   ].join(' ');
 
