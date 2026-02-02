@@ -225,6 +225,18 @@ describe('buildEnvVars', () => {
     expect(result.GITHUB_REPO).toBeUndefined();
   });
 
+  it('includes THINKING_DEFAULT when set', () => {
+    const env = createMockEnv({ THINKING_DEFAULT: 'low' });
+    const result = buildEnvVars(env);
+    expect(result.THINKING_DEFAULT).toBe('low');
+  });
+
+  it('omits THINKING_DEFAULT when not set', () => {
+    const env = createMockEnv();
+    const result = buildEnvVars(env);
+    expect(result.THINKING_DEFAULT).toBeUndefined();
+  });
+
   it('includes OpenAI Codex tokens when set', () => {
     const env = createMockEnv({
       OPENAI_CODEX_ACCESS_TOKEN: 'eyJhbGciOiJSUzI1NiJ9.test-access-token',

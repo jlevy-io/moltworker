@@ -332,6 +332,11 @@ config.models.providers = {};  // Wipe old custom providers (anthropic, openrout
 config.agents.defaults.model.primary = 'openai-codex/gpt-5.2';
 config.agents.defaults.model.fallbacks = ['openai-codex/gpt-5.1-codex-mini'];
 
+// Thinking mode configuration
+if (process.env.THINKING_DEFAULT) {
+    config.agents.defaults.thinkingDefault = process.env.THINKING_DEFAULT;
+}
+
 // Auth config for Codex OAuth
 config.auth = { profiles: {}, order: {} };
 config.auth.profiles['openai-codex:default'] = { provider: 'openai-codex', mode: 'oauth' };
