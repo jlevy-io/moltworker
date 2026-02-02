@@ -317,6 +317,12 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     config.channels.slack.botToken = process.env.SLACK_BOT_TOKEN;
     config.channels.slack.appToken = process.env.SLACK_APP_TOKEN;
     config.channels.slack.enabled = true;
+    if (process.env.SLACK_DM_POLICY) {
+        config.channels.slack.dmPolicy = process.env.SLACK_DM_POLICY;
+    }
+    if (process.env.SLACK_ALLOW_FROM) {
+        config.channels.slack.allowFrom = process.env.SLACK_ALLOW_FROM.split(',');
+    }
 }
 
 // Base URL override (e.g., for Cloudflare AI Gateway)

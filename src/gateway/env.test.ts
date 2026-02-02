@@ -99,15 +99,19 @@ describe('buildEnvVars', () => {
       DISCORD_DM_POLICY: 'open',
       SLACK_BOT_TOKEN: 'slack-bot',
       SLACK_APP_TOKEN: 'slack-app',
+      SLACK_DM_POLICY: 'allowlist',
+      SLACK_ALLOW_FROM: 'U123,U456',
     });
     const result = buildEnvVars(env);
-    
+
     expect(result.TELEGRAM_BOT_TOKEN).toBe('tg-token');
     expect(result.TELEGRAM_DM_POLICY).toBe('pairing');
     expect(result.DISCORD_BOT_TOKEN).toBe('discord-token');
     expect(result.DISCORD_DM_POLICY).toBe('open');
     expect(result.SLACK_BOT_TOKEN).toBe('slack-bot');
     expect(result.SLACK_APP_TOKEN).toBe('slack-app');
+    expect(result.SLACK_DM_POLICY).toBe('allowlist');
+    expect(result.SLACK_ALLOW_FROM).toBe('U123,U456');
   });
 
   it('maps DEV_MODE to CLAWDBOT_DEV_MODE for container', () => {
