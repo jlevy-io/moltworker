@@ -14,9 +14,10 @@ export interface MoltbotEnv {
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_BASE_URL?: string;
   OPENAI_API_KEY?: string;
-  // OpenRouter configuration (hybrid provider support)
-  OPENROUTER_API_KEY?: string; // OpenRouter API key for hybrid provider mode
-  OPENROUTER_MODEL?: string; // OpenRouter model ID (default: moonshotai/kimi-k2.5)
+  // OpenAI Codex configuration (ChatGPT Pro via OAuth)
+  OPENAI_CODEX_ACCESS_TOKEN?: string; // OAuth access token from ChatGPT Pro
+  OPENAI_CODEX_REFRESH_TOKEN?: string; // OAuth refresh token (single-use, gateway auto-rotates)
+  OPENAI_CODEX_ACCOUNT_ID?: string; // ChatGPT account ID (optional, for billing)
   MOLTBOT_GATEWAY_TOKEN?: string; // Gateway token (mapped to CLAWDBOT_GATEWAY_TOKEN for container)
 
   CLAWDBOT_BIND_MODE?: string;

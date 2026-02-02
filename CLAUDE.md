@@ -65,9 +65,12 @@ wrangler.jsonc          # Cloudflare Worker config
 Set via `npx wrangler secret put <NAME>`. The Worker forwards these to the container through `buildEnvVars()` in `src/gateway/env.ts`.
 
 **Required:**
-- `ANTHROPIC_API_KEY` (or `AI_GATEWAY_API_KEY` + `AI_GATEWAY_BASE_URL`)
+- `OPENAI_CODEX_ACCESS_TOKEN` + `OPENAI_CODEX_REFRESH_TOKEN` — OAuth tokens from ChatGPT Pro (run `node scripts/openai-codex-oauth.mjs` to obtain)
 - `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` — Cloudflare Access config
 - `MOLTBOT_GATEWAY_TOKEN` — mapped to `CLAWDBOT_GATEWAY_TOKEN` in container
+
+**OpenAI Codex (optional):**
+- `OPENAI_CODEX_ACCOUNT_ID` — ChatGPT account ID for billing (optional)
 
 **Channels (optional):**
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_DM_POLICY`, `TELEGRAM_ALLOW_FROM`
@@ -131,6 +134,9 @@ Container startup takes 1-2 minutes. `SANDBOX_SLEEP_AFTER` defaults to `never` t
 
 ### MOLTBOT_GATEWAY_TOKEN naming
 The wrangler secret is `MOLTBOT_GATEWAY_TOKEN` but the container expects `CLAWDBOT_GATEWAY_TOKEN`. The mapping happens in `buildEnvVars()`. Don't set both.
+
+### OpenAI Codex OAuth tokens
+Run `node scripts/openai-codex-oauth.mjs` to complete a PKCE OAuth flow against ChatGPT Pro and obtain access/refresh tokens. Set them as wrangler secrets. On first boot, `start-moltbot.sh` seeds `auth-profiles.json` from env vars. The gateway auto-rotates tokens; the R2 cron backs up the refreshed file. Subsequent boots restore from R2 (skipping env var seed).
 
 ## Workflow
 

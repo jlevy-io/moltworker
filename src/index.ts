@@ -11,7 +11,7 @@
  * - Configuration via environment secrets
  *
  * Required secrets (set via `wrangler secret put`):
- * - ANTHROPIC_API_KEY: Your Anthropic API key
+ * - OPENAI_CODEX_ACCESS_TOKEN + OPENAI_CODEX_REFRESH_TOKEN: OAuth tokens from ChatGPT Pro
  *
  * Optional secrets:
  * - MOLTBOT_GATEWAY_TOKEN: Token to protect gateway access
@@ -67,15 +67,9 @@ function validateRequiredEnv(env: MoltbotEnv): string[] {
     missing.push('CF_ACCESS_AUD');
   }
 
-  // Check for AI Gateway or direct Anthropic configuration
-  if (env.AI_GATEWAY_API_KEY) {
-    // AI Gateway requires both API key and base URL
-    if (!env.AI_GATEWAY_BASE_URL) {
-      missing.push('AI_GATEWAY_BASE_URL (required when using AI_GATEWAY_API_KEY)');
-    }
-  } else if (!env.ANTHROPIC_API_KEY) {
-    // Direct Anthropic access requires API key
-    missing.push('ANTHROPIC_API_KEY or AI_GATEWAY_API_KEY');
+  // Check for OpenAI Codex OAuth tokens
+  if (!env.OPENAI_CODEX_ACCESS_TOKEN || !env.OPENAI_CODEX_REFRESH_TOKEN) {
+    missing.push('OPENAI_CODEX_ACCESS_TOKEN + OPENAI_CODEX_REFRESH_TOKEN (run: node scripts/openai-codex-oauth.mjs)');
   }
 
   return missing;
@@ -117,7 +111,7 @@ app.use('*', async (c, next) => {
   // Redact secret= query param from logs to avoid leaking shared secrets
   const safeSearch = url.search.replace(/secret=[^&]+/, 'secret=***');
   console.log(`[REQ] ${c.req.method} ${url.pathname}${safeSearch}`);
-  console.log(`[REQ] Has ANTHROPIC_API_KEY: ${!!c.env.ANTHROPIC_API_KEY}`);
+  console.log(`[REQ] Has OPENAI_CODEX tokens: ${!!c.env.OPENAI_CODEX_ACCESS_TOKEN}`);
   console.log(`[REQ] DEV_MODE: ${c.env.DEV_MODE}`);
   console.log(`[REQ] DEBUG_ROUTES: ${c.env.DEBUG_ROUTES}`);
   await next();
@@ -254,8 +248,8 @@ app.all('*', async (c) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     let hint = 'Check worker logs with: wrangler tail';
-    if (!c.env.ANTHROPIC_API_KEY) {
-      hint = 'ANTHROPIC_API_KEY is not set. Run: wrangler secret put ANTHROPIC_API_KEY';
+    if (!c.env.OPENAI_CODEX_ACCESS_TOKEN) {
+      hint = 'OPENAI_CODEX tokens not set. Run: node scripts/openai-codex-oauth.mjs';
     } else if (errorMessage.includes('heap out of memory') || errorMessage.includes('OOM')) {
       hint = 'Gateway ran out of memory. Try again or check for memory leaks.';
     }
