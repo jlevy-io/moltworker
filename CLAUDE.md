@@ -80,6 +80,9 @@ Set via `npx wrangler secret put <NAME>`. The Worker forwards these to the conta
 **R2 persistence (all 3 required together):**
 - `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CF_ACCOUNT_ID`
 
+**Agent defaults (optional):**
+- `THINKING_DEFAULT` — thinking mode for agents: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`
+
 **Debug/dev:**
 - `DEV_MODE=true` — skips CF Access auth + device pairing
 - `DEBUG_ROUTES=true` — enables `/debug/*` endpoints
@@ -137,6 +140,27 @@ The wrangler secret is `MOLTBOT_GATEWAY_TOKEN` but the container expects `CLAWDB
 
 ### OpenAI Codex OAuth tokens
 Run `node scripts/openai-codex-oauth.mjs` to complete a PKCE OAuth flow against ChatGPT Pro and obtain access/refresh tokens. Set them as wrangler secrets. On first boot, `start-moltbot.sh` seeds `auth-profiles.json` from env vars. The gateway auto-rotates tokens; the R2 cron backs up the refreshed file. Subsequent boots restore from R2 (skipping env var seed).
+
+### auth-profiles.json format
+Clawdbot's auth store (`auth-profiles.json`) uses a specific schema — do NOT guess field names. The correct format for OAuth providers:
+```json
+{
+  "profiles": {
+    "openai-codex:default": {
+      "type": "oauth",
+      "provider": "openai-codex",
+      "access": "<access_token>",
+      "refresh": "<refresh_token>",
+      "expires": 0,
+      "accountId": "<optional>"
+    }
+  }
+}
+```
+Common mistakes: using `accessToken`/`refreshToken`/`expiresAt` (wrong — use `access`/`refresh`/`expires`), omitting the `profiles` wrapper, or omitting `type`/`provider` fields. The gateway will report "No API key found" without useful detail about which field is wrong. The file must also be copied to the agent dir (`/root/.clawdbot/agents/main/agent/auth-profiles.json`) — the agent reads from its own agentDir, not the main config dir.
+
+### openai-codex is a built-in provider
+Do NOT define `openai-codex` in `models.providers` in `clawdbot.json`. It is a built-in provider — the gateway handles routing automatically. Custom provider entries require `baseUrl`, which will cause a validation crash for built-in providers. Just set `model.primary` and `model.fallbacks` referencing it (e.g. `openai-codex/gpt-5.2`).
 
 ## Workflow
 
