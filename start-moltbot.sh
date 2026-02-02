@@ -408,8 +408,8 @@ if (process.env.OPENROUTER_API_KEY) {
             name: modelName,
             reasoning: true,
             input: ['text'],
-            contextWindow: 131072,
-            maxTokens: 8192
+            contextWindow: 262144,
+            maxTokens: 16384
         }]
     };
 
