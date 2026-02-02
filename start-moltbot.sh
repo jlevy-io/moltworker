@@ -353,12 +353,14 @@ if [ -n "$OPENAI_CODEX_ACCESS_TOKEN" ] && [ -n "$OPENAI_CODEX_REFRESH_TOKEN" ] &
     echo "Seeding auth-profiles.json from OPENAI_CODEX_* env vars..."
     node -e '
       const profile = {
-        accessToken: process.env.OPENAI_CODEX_ACCESS_TOKEN,
-        refreshToken: process.env.OPENAI_CODEX_REFRESH_TOKEN,
-        expiresAt: 0,
-        accountId: process.env.OPENAI_CODEX_ACCOUNT_ID || "",
+        type: "oauth",
+        provider: "openai-codex",
+        access: process.env.OPENAI_CODEX_ACCESS_TOKEN,
+        refresh: process.env.OPENAI_CODEX_REFRESH_TOKEN,
+        expires: 0,
+        accountId: process.env.OPENAI_CODEX_ACCOUNT_ID || undefined,
       };
-      const data = { "openai-codex:default": profile };
+      const data = { profiles: { "openai-codex:default": profile } };
       require("fs").writeFileSync(process.argv[1], JSON.stringify(data, null, 2));
     ' "$AUTH_PROFILES_FILE"
     chmod 600 "$AUTH_PROFILES_FILE"
