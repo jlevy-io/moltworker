@@ -14,6 +14,9 @@ export interface MoltbotEnv {
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_BASE_URL?: string;
   OPENAI_API_KEY?: string;
+  // OpenRouter configuration (hybrid provider support)
+  OPENROUTER_API_KEY?: string; // OpenRouter API key for hybrid provider mode
+  OPENROUTER_MODEL?: string; // OpenRouter model ID (default: moonshotai/kimi-k2.5)
   MOLTBOT_GATEWAY_TOKEN?: string; // Gateway token (mapped to CLAWDBOT_GATEWAY_TOKEN for container)
 
   CLAWDBOT_BIND_MODE?: string;
