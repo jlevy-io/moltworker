@@ -319,7 +319,8 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     config.channels.slack.enabled = true;
     config.channels.slack.groupPolicy = 'open';
     if (process.env.SLACK_REQUIRE_MENTION === 'false') {
-        config.channels.slack.groups = { '*': { requireMention: false } };
+        config.channels.slack.channels = config.channels.slack.channels || {};
+        config.channels.slack.channels['*'] = { requireMention: false };
     }
     if (process.env.SLACK_DM_POLICY) {
         config.channels.slack.dm = config.channels.slack.dm || {};
