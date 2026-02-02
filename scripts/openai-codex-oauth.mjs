@@ -21,10 +21,9 @@ import { URL } from 'node:url';
 
 const CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann';
 const REDIRECT_PORT = 1455;
-const REDIRECT_URI = `http://127.0.0.1:${REDIRECT_PORT}/callback`;
+const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/auth/callback`;
 const AUTH_URL = 'https://auth.openai.com/oauth/authorize';
 const TOKEN_URL = 'https://auth.openai.com/oauth/token';
-const SCOPES = 'openid profile email offline_access model.read model.request';
 
 // PKCE helpers
 function base64url(buf) {
@@ -48,10 +47,12 @@ const authParams = new URLSearchParams({
   client_id: CLIENT_ID,
   redirect_uri: REDIRECT_URI,
   response_type: 'code',
-  scope: SCOPES,
   state,
   code_challenge: codeChallenge,
   code_challenge_method: 'S256',
+  // Required by OpenAI's auth server to identify Codex CLI flow
+  codex_cli_simplified_flow: 'true',
+  originator: 'codex_cli_rs',
 });
 
 const authorizationUrl = `${AUTH_URL}?${authParams}`;
@@ -68,9 +69,9 @@ execFile(openCmd, [authorizationUrl], () => {});
 
 // Start temp HTTP server to capture callback
 const server = createServer(async (req, res) => {
-  const url = new URL(req.url, `http://127.0.0.1:${REDIRECT_PORT}`);
+  const url = new URL(req.url, `http://localhost:${REDIRECT_PORT}`);
 
-  if (url.pathname !== '/callback') {
+  if (url.pathname !== '/auth/callback') {
     res.writeHead(404);
     res.end('Not found');
     return;
@@ -116,6 +117,15 @@ const server = createServer(async (req, res) => {
 
     const tokens = await tokenRes.json();
 
+    // Extract ChatGPT account ID from the access token JWT
+    let accountId;
+    try {
+      const payload = JSON.parse(Buffer.from(tokens.access_token.split('.')[1], 'base64').toString());
+      accountId = payload?.['https://api.openai.com/auth']?.chatgpt_account_id;
+    } catch (e) {
+      // Not a JWT or missing claim — non-fatal
+    }
+
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end('<h1>Success!</h1><p>You can close this tab. Check your terminal for the tokens.</p>');
 
@@ -123,14 +133,14 @@ const server = createServer(async (req, res) => {
     console.log('Set these as wrangler secrets:\n');
     console.log(`  OPENAI_CODEX_ACCESS_TOKEN:  ${tokens.access_token?.slice(0, 20)}...`);
     console.log(`  OPENAI_CODEX_REFRESH_TOKEN: ${tokens.refresh_token?.slice(0, 20)}...`);
-    if (tokens.account_id) {
-      console.log(`  OPENAI_CODEX_ACCOUNT_ID:    ${tokens.account_id}`);
+    if (accountId) {
+      console.log(`  OPENAI_CODEX_ACCOUNT_ID:    ${accountId}`);
     }
     console.log('\nFull values (paste when prompted by wrangler secret put):\n');
     console.log(`OPENAI_CODEX_ACCESS_TOKEN=${tokens.access_token}`);
     console.log(`OPENAI_CODEX_REFRESH_TOKEN=${tokens.refresh_token}`);
-    if (tokens.account_id) {
-      console.log(`OPENAI_CODEX_ACCOUNT_ID=${tokens.account_id}`);
+    if (accountId) {
+      console.log(`OPENAI_CODEX_ACCOUNT_ID=${accountId}`);
     }
     console.log('');
   } catch (err) {
@@ -143,5 +153,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(REDIRECT_PORT, '127.0.0.1', () => {
-  console.log(`Listening on http://127.0.0.1:${REDIRECT_PORT}/callback for OAuth callback...\n`);
+  console.log(`Listening on http://localhost:${REDIRECT_PORT}/auth/callback for OAuth callback...\n`);
 });
