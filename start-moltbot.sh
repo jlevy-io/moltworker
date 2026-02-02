@@ -402,7 +402,7 @@ if (process.env.OPENROUTER_API_KEY) {
     config.models.providers.openrouter = {
         baseUrl: 'https://openrouter.ai/api/v1',
         apiKey: process.env.OPENROUTER_API_KEY,
-        api: 'openai-chat',
+        api: 'openai-completions',
         models: [{
             id: openrouterModel,
             name: modelName,
