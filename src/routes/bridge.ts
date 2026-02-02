@@ -211,9 +211,10 @@ bridge.put('/file', async (c) => {
 
   const sandbox = c.get('sandbox');
   try {
-    // Read body as text, base64-encode to safely pipe through shell
+    // Read body as text, base64-encode to safely pipe through shell.
+    // Use Buffer instead of btoa() to handle Unicode characters (em dashes, etc.).
     const content = await c.req.text();
-    const encoded = btoa(content);
+    const encoded = Buffer.from(content, 'utf-8').toString('base64');
 
     // Ensure parent directory exists, then decode and write
     const dir = filePath.substring(0, filePath.lastIndexOf('/'));
