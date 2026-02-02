@@ -47,6 +47,7 @@ const authParams = new URLSearchParams({
   client_id: CLIENT_ID,
   redirect_uri: REDIRECT_URI,
   response_type: 'code',
+  scope: 'offline_access',
   state,
   code_challenge: codeChallenge,
   code_challenge_method: 'S256',
