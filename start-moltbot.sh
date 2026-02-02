@@ -389,6 +389,40 @@ if (isOpenAI) {
     config.agents.defaults.model.primary = 'anthropic/claude-opus-4-5';
 }
 
+// OpenRouter hybrid provider overlay (runs after base provider config)
+// When set, promotes OpenRouter model to primary and demotes the previous primary to fallback
+if (process.env.OPENROUTER_API_KEY) {
+    const openrouterModel = process.env.OPENROUTER_MODEL || 'moonshotai/kimi-k2.5';
+    const modelName = openrouterModel.split('/').pop() || openrouterModel;
+    console.log('Configuring OpenRouter provider with model:', openrouterModel);
+
+    config.models = config.models || {};
+    config.models.mode = 'merge';
+    config.models.providers = config.models.providers || {};
+    config.models.providers.openrouter = {
+        baseUrl: 'https://openrouter.ai/api/v1',
+        apiKey: process.env.OPENROUTER_API_KEY,
+        api: 'openai-chat',
+        models: [{
+            id: openrouterModel,
+            name: modelName,
+            reasoning: true,
+            input: ['text'],
+            contextWindow: 131072,
+            maxTokens: 8192
+        }]
+    };
+
+    // Demote current primary to fallback, promote OpenRouter to primary
+    const previousPrimary = config.agents.defaults.model.primary;
+    const qualifiedModelId = 'openrouter/' + openrouterModel;
+    config.agents.defaults.model.primary = qualifiedModelId;
+    config.agents.defaults.model.fallbacks = [previousPrimary];
+
+    config.agents.defaults.models = config.agents.defaults.models || {};
+    config.agents.defaults.models[qualifiedModelId] = { alias: modelName };
+}
+
 // Write updated config
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 console.log('Configuration updated successfully');
