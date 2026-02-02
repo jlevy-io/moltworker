@@ -358,17 +358,16 @@ EOFNODE
 AUTH_PROFILES_FILE="$CONFIG_DIR/auth-profiles.json"
 if [ -n "$OPENAI_CODEX_ACCESS_TOKEN" ] && [ -n "$OPENAI_CODEX_REFRESH_TOKEN" ] && [ ! -f "$AUTH_PROFILES_FILE" ]; then
     echo "Seeding auth-profiles.json from OPENAI_CODEX_* env vars..."
-    CODEX_ACCOUNT_ID="${OPENAI_CODEX_ACCOUNT_ID:-}"
-    cat > "$AUTH_PROFILES_FILE" << EOFAUTH
-{
-  "openai-codex:default": {
-    "accessToken": "$OPENAI_CODEX_ACCESS_TOKEN",
-    "refreshToken": "$OPENAI_CODEX_REFRESH_TOKEN",
-    "expiresAt": 0,
-    "accountId": "$CODEX_ACCOUNT_ID"
-  }
-}
-EOFAUTH
+    node -e '
+      const profile = {
+        accessToken: process.env.OPENAI_CODEX_ACCESS_TOKEN,
+        refreshToken: process.env.OPENAI_CODEX_REFRESH_TOKEN,
+        expiresAt: 0,
+        accountId: process.env.OPENAI_CODEX_ACCOUNT_ID || "",
+      };
+      const data = { "openai-codex:default": profile };
+      require("fs").writeFileSync(process.argv[1], JSON.stringify(data, null, 2));
+    ' "$AUTH_PROFILES_FILE"
     chmod 600 "$AUTH_PROFILES_FILE"
     echo "Seeded auth-profiles.json (gateway will auto-refresh tokens on first use)"
 elif [ -f "$AUTH_PROFILES_FILE" ]; then

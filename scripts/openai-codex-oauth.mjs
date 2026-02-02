@@ -82,15 +82,15 @@ const server = createServer(async (req, res) => {
 
   if (error) {
     const desc = url.searchParams.get('error_description') || error;
-    res.writeHead(400, { 'Content-Type': 'text/html' });
-    res.end(`<h1>Error</h1><p>${desc}</p>`);
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    res.end(`Error: ${desc}`);
     console.error(`\nAuthorization error: ${desc}`);
     process.exit(1);
   }
 
   if (returnedState !== state) {
-    res.writeHead(400, { 'Content-Type': 'text/html' });
-    res.end('<h1>Error</h1><p>State mismatch</p>');
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    res.end('Error: State mismatch');
     console.error('\nState mismatch — possible CSRF. Try again.');
     process.exit(1);
   }
@@ -134,8 +134,8 @@ const server = createServer(async (req, res) => {
     }
     console.log('');
   } catch (err) {
-    res.writeHead(500, { 'Content-Type': 'text/html' });
-    res.end(`<h1>Error</h1><p>${err.message}</p>`);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end(`Error: ${err.message}`);
     console.error(`\nToken exchange error: ${err.message}`);
   } finally {
     server.close();
