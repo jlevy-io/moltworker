@@ -114,6 +114,16 @@ describe('buildEnvVars', () => {
     expect(result.SLACK_ALLOW_FROM).toBe('U123,U456');
   });
 
+  it('includes SLACK_REQUIRE_MENTION when set', () => {
+    const env = createMockEnv({
+      SLACK_BOT_TOKEN: 'slack-bot',
+      SLACK_APP_TOKEN: 'slack-app',
+      SLACK_REQUIRE_MENTION: 'false',
+    });
+    const result = buildEnvVars(env);
+    expect(result.SLACK_REQUIRE_MENTION).toBe('false');
+  });
+
   it('maps DEV_MODE to CLAWDBOT_DEV_MODE for container', () => {
     const env = createMockEnv({
       DEV_MODE: 'true',

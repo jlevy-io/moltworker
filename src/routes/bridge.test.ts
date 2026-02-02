@@ -137,6 +137,20 @@ describe('bridge route', () => {
       expect(body.path).toBe('/tmp/out.txt');
     });
 
+    it('handles Unicode content (em dashes, emoji, etc.)', async () => {
+      const { request, startProcessMock } = buildApp();
+      startProcessMock.mockResolvedValueOnce(createMockProcess(''));
+
+      const res = await request('/bridge/file?secret=test-secret&path=/tmp/unicode.md', {
+        method: 'PUT',
+        body: 'Hello \u2014 world \u2019s test',
+      });
+      expect(res.status).toBe(200);
+      // Verify the shell command uses valid base64 (would have thrown with btoa)
+      const cmd = startProcessMock.mock.calls[0][0] as string;
+      expect(cmd).toContain('base64 -d');
+    });
+
     it('returns 500 when write fails', async () => {
       const { request, startProcessMock } = buildApp();
       startProcessMock.mockResolvedValueOnce(
