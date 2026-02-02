@@ -50,8 +50,9 @@ RUN chmod +x /usr/local/bin/start-moltbot.sh && echo "build: $CACHE_BUST" > /usr
 # Copy default configuration template
 COPY moltbot.json.template /root/.clawdbot-templates/moltbot.json.template
 
-# Copy custom skills
+# Copy custom skills and build any that have TypeScript source
 COPY skills/ /root/clawd/skills/
+RUN cd /root/clawd/skills/ms-graph && npm install && npm run build && rm -rf node_modules
 
 # Set working directory
 WORKDIR /root/clawd
