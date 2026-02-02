@@ -318,10 +318,12 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     config.channels.slack.appToken = process.env.SLACK_APP_TOKEN;
     config.channels.slack.enabled = true;
     if (process.env.SLACK_DM_POLICY) {
-        config.channels.slack.dmPolicy = process.env.SLACK_DM_POLICY;
-    }
-    if (process.env.SLACK_ALLOW_FROM) {
-        config.channels.slack.allowFrom = process.env.SLACK_ALLOW_FROM.split(',');
+        config.channels.slack.dm = config.channels.slack.dm || {};
+        config.channels.slack.dm.enabled = true;
+        config.channels.slack.dm.policy = process.env.SLACK_DM_POLICY;
+        if (process.env.SLACK_ALLOW_FROM) {
+            config.channels.slack.dm.allowFrom = process.env.SLACK_ALLOW_FROM.split(',');
+        }
     }
 }
 
