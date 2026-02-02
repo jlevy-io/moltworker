@@ -407,7 +407,7 @@ if (process.env.OPENROUTER_API_KEY) {
             id: openrouterModel,
             name: modelName,
             reasoning: true,
-            input: ['text'],
+            input: ['text', 'image'],
             contextWindow: 262144,
             maxTokens: 16384
         }]
