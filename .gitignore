@@ -36,7 +36,6 @@ Thumbs.db
 
 # Claude Code local overrides
 .claude.local.md
-.claude/skills/
 
 # Docker build artifacts
 *.tar
