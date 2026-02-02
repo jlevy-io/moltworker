@@ -322,9 +322,11 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
 }
 
 // OpenAI Codex provider (ChatGPT Pro via OAuth)
-console.log('Configuring OpenAI Codex provider');
+// Wipe all previous providers (e.g. anthropic, openrouter from R2-restored config)
+console.log('Configuring OpenAI Codex provider (replacing any previous providers)');
 config.models = config.models || {};
-config.models.providers = config.models.providers || {};
+delete config.models.mode;  // Remove 'merge' mode from previous OpenRouter config
+config.models.providers = {};
 config.models.providers['openai-codex'] = {
     models: [
         { id: 'gpt-5.2', name: 'GPT-5.2', contextWindow: 200000 },
@@ -332,7 +334,7 @@ config.models.providers['openai-codex'] = {
         { id: 'gpt-5.1-codex-mini', name: 'Codex Mini', contextWindow: 200000 },
     ]
 };
-config.agents.defaults.models = config.agents.defaults.models || {};
+config.agents.defaults.models = {};
 config.agents.defaults.models['openai-codex/gpt-5.2'] = { alias: 'GPT-5.2' };
 config.agents.defaults.models['openai-codex/gpt-5.2-pro'] = { alias: 'GPT-5.2 Pro' };
 config.agents.defaults.models['openai-codex/gpt-5.1-codex-mini'] = { alias: 'Codex Mini' };
