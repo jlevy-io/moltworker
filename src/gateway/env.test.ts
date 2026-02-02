@@ -225,44 +225,24 @@ describe('buildEnvVars', () => {
     expect(result.GITHUB_REPO).toBeUndefined();
   });
 
-  it('includes OpenRouter vars when set', () => {
+  it('includes OpenAI Codex tokens when set', () => {
     const env = createMockEnv({
-      OPENROUTER_API_KEY: 'sk-or-v1-test-key',
-      OPENROUTER_MODEL: 'moonshotai/kimi-k2.5',
+      OPENAI_CODEX_ACCESS_TOKEN: 'eyJhbGciOiJSUzI1NiJ9.test-access-token',
+      OPENAI_CODEX_REFRESH_TOKEN: 'v1.test-refresh-token',
+      OPENAI_CODEX_ACCOUNT_ID: 'acct_abc123',
     });
     const result = buildEnvVars(env);
-    expect(result.OPENROUTER_API_KEY).toBe('sk-or-v1-test-key');
-    expect(result.OPENROUTER_MODEL).toBe('moonshotai/kimi-k2.5');
+    expect(result.OPENAI_CODEX_ACCESS_TOKEN).toBe('eyJhbGciOiJSUzI1NiJ9.test-access-token');
+    expect(result.OPENAI_CODEX_REFRESH_TOKEN).toBe('v1.test-refresh-token');
+    expect(result.OPENAI_CODEX_ACCOUNT_ID).toBe('acct_abc123');
   });
 
-  it('omits OpenRouter vars when not set', () => {
+  it('omits OpenAI Codex tokens when not set', () => {
     const env = createMockEnv();
     const result = buildEnvVars(env);
-    expect(result.OPENROUTER_API_KEY).toBeUndefined();
-    expect(result.OPENROUTER_MODEL).toBeUndefined();
-  });
-
-  it('passes OpenRouter vars alongside Anthropic vars (hybrid mode)', () => {
-    const env = createMockEnv({
-      ANTHROPIC_API_KEY: 'sk-ant-key',
-      OPENROUTER_API_KEY: 'sk-or-v1-key',
-      OPENROUTER_MODEL: 'moonshotai/kimi-k2.5',
-    });
-    const result = buildEnvVars(env);
-    expect(result.ANTHROPIC_API_KEY).toBe('sk-ant-key');
-    expect(result.OPENROUTER_API_KEY).toBe('sk-or-v1-key');
-    expect(result.OPENROUTER_MODEL).toBe('moonshotai/kimi-k2.5');
-  });
-
-  it('passes OpenRouter vars alongside AI Gateway vars (hybrid mode)', () => {
-    const env = createMockEnv({
-      AI_GATEWAY_API_KEY: 'sk-gw-key',
-      AI_GATEWAY_BASE_URL: 'https://gateway.ai.cloudflare.com/v1/123/gw/anthropic',
-      OPENROUTER_API_KEY: 'sk-or-v1-key',
-    });
-    const result = buildEnvVars(env);
-    expect(result.ANTHROPIC_API_KEY).toBe('sk-gw-key');
-    expect(result.OPENROUTER_API_KEY).toBe('sk-or-v1-key');
+    expect(result.OPENAI_CODEX_ACCESS_TOKEN).toBeUndefined();
+    expect(result.OPENAI_CODEX_REFRESH_TOKEN).toBeUndefined();
+    expect(result.OPENAI_CODEX_ACCOUNT_ID).toBeUndefined();
   });
 
   it('handles multiple trailing slashes in AI_GATEWAY_BASE_URL', () => {

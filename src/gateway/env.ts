@@ -31,9 +31,10 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
     envVars.OPENAI_API_KEY = env.OPENAI_API_KEY;
   }
 
-  // OpenRouter configuration (hybrid provider with fallback)
-  if (env.OPENROUTER_API_KEY) envVars.OPENROUTER_API_KEY = env.OPENROUTER_API_KEY;
-  if (env.OPENROUTER_MODEL) envVars.OPENROUTER_MODEL = env.OPENROUTER_MODEL;
+  // OpenAI Codex OAuth tokens (ChatGPT Pro)
+  if (env.OPENAI_CODEX_ACCESS_TOKEN) envVars.OPENAI_CODEX_ACCESS_TOKEN = env.OPENAI_CODEX_ACCESS_TOKEN;
+  if (env.OPENAI_CODEX_REFRESH_TOKEN) envVars.OPENAI_CODEX_REFRESH_TOKEN = env.OPENAI_CODEX_REFRESH_TOKEN;
+  if (env.OPENAI_CODEX_ACCOUNT_ID) envVars.OPENAI_CODEX_ACCOUNT_ID = env.OPENAI_CODEX_ACCOUNT_ID;
 
   // Pass base URL (used by start-moltbot.sh to determine provider)
   if (normalizedBaseUrl) {

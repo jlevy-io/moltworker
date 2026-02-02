@@ -258,17 +258,6 @@ config.agents.defaults.model = config.agents.defaults.model || {};
 config.gateway = config.gateway || {};
 config.channels = config.channels || {};
 
-// Clean up any broken anthropic provider config from previous runs
-// (older versions didn't include required 'name' field)
-if (config.models?.providers?.anthropic?.models) {
-    const hasInvalidModels = config.models.providers.anthropic.models.some(m => !m.name);
-    if (hasInvalidModels) {
-        console.log('Removing broken anthropic provider config (missing model names)');
-        delete config.models.providers.anthropic;
-    }
-}
-
-
 
 // Gateway configuration
 config.gateway.port = 18789;
@@ -332,102 +321,61 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     }
 }
 
-// Base URL override (e.g., for Cloudflare AI Gateway)
-// Usage: Set AI_GATEWAY_BASE_URL or ANTHROPIC_BASE_URL to your endpoint like:
-//   https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/anthropic
-//   https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/openai
-const baseUrl = (process.env.AI_GATEWAY_BASE_URL || process.env.ANTHROPIC_BASE_URL || '').replace(/\/+$/, '');
-const isOpenAI = baseUrl.endsWith('/openai');
+// OpenAI Codex provider (ChatGPT Pro via OAuth)
+console.log('Configuring OpenAI Codex provider');
+config.models = config.models || {};
+config.models.providers = config.models.providers || {};
+config.models.providers['openai-codex'] = {
+    models: [
+        { id: 'gpt-5.2', name: 'GPT-5.2', contextWindow: 200000 },
+        { id: 'gpt-5.2-pro', name: 'GPT-5.2 Pro', contextWindow: 200000 },
+        { id: 'gpt-5.1-codex-mini', name: 'Codex Mini', contextWindow: 200000 },
+    ]
+};
+config.agents.defaults.models = config.agents.defaults.models || {};
+config.agents.defaults.models['openai-codex/gpt-5.2'] = { alias: 'GPT-5.2' };
+config.agents.defaults.models['openai-codex/gpt-5.2-pro'] = { alias: 'GPT-5.2 Pro' };
+config.agents.defaults.models['openai-codex/gpt-5.1-codex-mini'] = { alias: 'Codex Mini' };
+config.agents.defaults.model.primary = 'openai-codex/gpt-5.2';
+config.agents.defaults.model.fallbacks = ['openai-codex/gpt-5.1-codex-mini'];
 
-if (isOpenAI) {
-    // Create custom openai provider config with baseUrl override
-    // Omit apiKey so moltbot falls back to OPENAI_API_KEY env var
-    console.log('Configuring OpenAI provider with base URL:', baseUrl);
-    config.models = config.models || {};
-    config.models.providers = config.models.providers || {};
-    config.models.providers.openai = {
-        baseUrl: baseUrl,
-        api: 'openai-responses',
-        models: [
-            { id: 'gpt-5.2', name: 'GPT-5.2', contextWindow: 200000 },
-            { id: 'gpt-5', name: 'GPT-5', contextWindow: 200000 },
-            { id: 'gpt-4.5-preview', name: 'GPT-4.5 Preview', contextWindow: 128000 },
-        ]
-    };
-    // Add models to the allowlist so they appear in /models
-    config.agents.defaults.models = config.agents.defaults.models || {};
-    config.agents.defaults.models['openai/gpt-5.2'] = { alias: 'GPT-5.2' };
-    config.agents.defaults.models['openai/gpt-5'] = { alias: 'GPT-5' };
-    config.agents.defaults.models['openai/gpt-4.5-preview'] = { alias: 'GPT-4.5' };
-    config.agents.defaults.model.primary = 'openai/gpt-5.2';
-} else if (baseUrl) {
-    console.log('Configuring Anthropic provider with base URL:', baseUrl);
-    config.models = config.models || {};
-    config.models.providers = config.models.providers || {};
-    const providerConfig = {
-        baseUrl: baseUrl,
-        api: 'anthropic-messages',
-        models: [
-            { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', contextWindow: 200000 },
-            { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', contextWindow: 200000 },
-            { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', contextWindow: 200000 },
-        ]
-    };
-    // Include API key in provider config if set (required when using custom baseUrl)
-    if (process.env.ANTHROPIC_API_KEY) {
-        providerConfig.apiKey = process.env.ANTHROPIC_API_KEY;
-    }
-    config.models.providers.anthropic = providerConfig;
-    // Add models to the allowlist so they appear in /models
-    config.agents.defaults.models = config.agents.defaults.models || {};
-    config.agents.defaults.models['anthropic/claude-opus-4-5-20251101'] = { alias: 'Opus 4.5' };
-    config.agents.defaults.models['anthropic/claude-sonnet-4-5-20250929'] = { alias: 'Sonnet 4.5' };
-    config.agents.defaults.models['anthropic/claude-haiku-4-5-20251001'] = { alias: 'Haiku 4.5' };
-    config.agents.defaults.model.primary = 'anthropic/claude-opus-4-5-20251101';
-} else {
-    // Default to Anthropic without custom base URL (uses built-in pi-ai catalog)
-    config.agents.defaults.model.primary = 'anthropic/claude-opus-4-5';
-}
-
-// OpenRouter hybrid provider overlay (runs after base provider config)
-// When set, promotes OpenRouter model to primary and demotes the previous primary to fallback
-if (process.env.OPENROUTER_API_KEY) {
-    const openrouterModel = process.env.OPENROUTER_MODEL || 'moonshotai/kimi-k2.5';
-    const modelName = openrouterModel.split('/').pop() || openrouterModel;
-    console.log('Configuring OpenRouter provider with model:', openrouterModel);
-
-    config.models = config.models || {};
-    config.models.mode = 'merge';
-    config.models.providers = config.models.providers || {};
-    config.models.providers.openrouter = {
-        baseUrl: 'https://openrouter.ai/api/v1',
-        apiKey: process.env.OPENROUTER_API_KEY,
-        api: 'openai-completions',
-        models: [{
-            id: openrouterModel,
-            name: modelName,
-            reasoning: false,
-            input: ['text', 'image'],
-            contextWindow: 262144,
-            maxTokens: 16384
-        }]
-    };
-
-    // Demote current primary to fallback, promote OpenRouter to primary
-    const previousPrimary = config.agents.defaults.model.primary;
-    const qualifiedModelId = 'openrouter/' + openrouterModel;
-    config.agents.defaults.model.primary = qualifiedModelId;
-    config.agents.defaults.model.fallbacks = [previousPrimary];
-
-    config.agents.defaults.models = config.agents.defaults.models || {};
-    config.agents.defaults.models[qualifiedModelId] = { alias: modelName };
-}
+// Auth config for Codex OAuth
+config.auth = { profiles: {}, order: {} };
+config.auth.profiles['openai-codex:default'] = { provider: 'openai-codex', mode: 'oauth' };
+config.auth.order['openai-codex'] = ['openai-codex:default'];
 
 // Write updated config
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 console.log('Configuration updated successfully');
 console.log('Config:', JSON.stringify(config, null, 2));
 EOFNODE
+
+# ============================================================
+# SEED OPENAI CODEX AUTH PROFILES (OAuth tokens)
+# ============================================================
+# Only seed if auth-profiles.json does NOT already exist (R2 restore runs first
+# and may have brought back a file with auto-rotated tokens from a previous boot).
+AUTH_PROFILES_FILE="$CONFIG_DIR/auth-profiles.json"
+if [ -n "$OPENAI_CODEX_ACCESS_TOKEN" ] && [ -n "$OPENAI_CODEX_REFRESH_TOKEN" ] && [ ! -f "$AUTH_PROFILES_FILE" ]; then
+    echo "Seeding auth-profiles.json from OPENAI_CODEX_* env vars..."
+    CODEX_ACCOUNT_ID="${OPENAI_CODEX_ACCOUNT_ID:-}"
+    cat > "$AUTH_PROFILES_FILE" << EOFAUTH
+{
+  "openai-codex:default": {
+    "accessToken": "$OPENAI_CODEX_ACCESS_TOKEN",
+    "refreshToken": "$OPENAI_CODEX_REFRESH_TOKEN",
+    "expiresAt": 0,
+    "accountId": "$CODEX_ACCOUNT_ID"
+  }
+}
+EOFAUTH
+    chmod 600 "$AUTH_PROFILES_FILE"
+    echo "Seeded auth-profiles.json (gateway will auto-refresh tokens on first use)"
+elif [ -f "$AUTH_PROFILES_FILE" ]; then
+    echo "auth-profiles.json already exists (likely restored from R2), skipping seed"
+else
+    echo "No OPENAI_CODEX tokens set, skipping auth-profiles.json seed"
+fi
 
 # ============================================================
 # WRITE GOG OAUTH CLIENT CREDENTIALS
