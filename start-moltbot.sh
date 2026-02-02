@@ -369,6 +369,16 @@ else
     echo "No OPENAI_CODEX tokens set, skipping auth-profiles.json seed"
 fi
 
+# The gateway agent also needs auth-profiles.json in its own agentDir.
+# Copy it there so the agent can find it at startup.
+AGENT_AUTH_DIR="$CONFIG_DIR/agents/main/agent"
+if [ -f "$AUTH_PROFILES_FILE" ] && [ ! -f "$AGENT_AUTH_DIR/auth-profiles.json" ]; then
+    mkdir -p "$AGENT_AUTH_DIR"
+    cp "$AUTH_PROFILES_FILE" "$AGENT_AUTH_DIR/auth-profiles.json"
+    chmod 600 "$AGENT_AUTH_DIR/auth-profiles.json"
+    echo "Copied auth-profiles.json to agent dir ($AGENT_AUTH_DIR)"
+fi
+
 # ============================================================
 # WRITE GOG OAUTH CLIENT CREDENTIALS
 # ============================================================
