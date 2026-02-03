@@ -114,6 +114,20 @@ suppressConsole()                // Silence console in tests
 - Tests: `describe`/`it`/`expect` (vitest globals)
 - No client-side tests (excluded in vitest config)
 
+## Working Approach
+
+### Plan before building
+Enter plan mode for any non-trivial task (3+ steps or architectural decisions). If something goes sideways mid-implementation, stop and re-plan — don't keep pushing a broken approach.
+
+### Use subagents to keep context clean
+Offload research, exploration, and parallel analysis to subagents. One focused task per subagent. Keep the main context window for decision-making and coordination.
+
+### Verify before marking done
+Never claim a task is complete without proving it works. Run `npm test` and `npm run typecheck`. Diff behavior between main and your changes when relevant. Ask: "Would this survive code review?"
+
+### Fix bugs autonomously
+When given a bug report or failing test, investigate and fix it. Follow logs, errors, and stack traces to root causes. Don't ask for hand-holding on things you can figure out from the codebase.
+
 ## Working with External APIs
 
 **Always use context7 first.** Before implementing against any external API or library (Cloudflare Sandbox, MCP protocols, Hono, etc.), use the context7 MCP tools (`resolve-library-id` → `query-docs`) to pull current documentation. LLM training data goes stale fast — current docs prevent wasted debugging cycles from outdated assumptions.
