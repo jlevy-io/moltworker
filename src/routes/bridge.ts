@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../types';
 import { MOLTBOT_PORT } from '../config';
+import { ensureMoltbotGateway } from '../gateway';
 
 /**
  * MCP Bridge route — WebSocket proxy + file endpoints
@@ -96,6 +97,14 @@ bridge.get('/', async (c) => {
   const request = new Request(gatewayUrl.toString(), { headers });
 
   console.log('[BRIDGE] WebSocket upgrade request, rewritten to', gatewayUrl.pathname + gatewayUrl.search.replace(/token=[^&]+/, 'token=***'));
+
+  // Ensure gateway is running before connecting (waits for container boot)
+  try {
+    await ensureMoltbotGateway(sandbox, c.env);
+  } catch (error) {
+    console.error('[BRIDGE] Failed to start gateway:', error);
+    return c.json({ error: 'Gateway not ready', details: String(error) }, 502);
+  }
 
   // Connect to gateway inside the container
   let containerResponse: Response;
