@@ -58,6 +58,8 @@ export interface MoltbotEnv {
   // Git workspace backup (auto-sync /root/clawd to GitHub)
   GITHUB_PAT?: string; // Personal access token for pushing workspace to GitHub
   GITHUB_REPO?: string; // GitHub repo (e.g., 'user/repo') for workspace backup
+  // Tool API keys
+  BRAVE_API_KEY?: string; // Brave Search API key (enables web_search tool in gateway)
 }
 
 /**
