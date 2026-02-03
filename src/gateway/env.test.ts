@@ -257,6 +257,18 @@ describe('buildEnvVars', () => {
     expect(result.OPENAI_CODEX_ACCOUNT_ID).toBeUndefined();
   });
 
+  it('includes BRAVE_API_KEY when set', () => {
+    const env = createMockEnv({ BRAVE_API_KEY: 'BSA-test-key' });
+    const result = buildEnvVars(env);
+    expect(result.BRAVE_API_KEY).toBe('BSA-test-key');
+  });
+
+  it('omits BRAVE_API_KEY when not set', () => {
+    const env = createMockEnv();
+    const result = buildEnvVars(env);
+    expect(result.BRAVE_API_KEY).toBeUndefined();
+  });
+
   it('handles multiple trailing slashes in AI_GATEWAY_BASE_URL', () => {
     const env = createMockEnv({
       AI_GATEWAY_API_KEY: 'sk-gateway-key',

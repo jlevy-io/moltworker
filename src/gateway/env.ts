@@ -82,5 +82,8 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   if (env.GITHUB_PAT) envVars.GITHUB_PAT = env.GITHUB_PAT;
   if (env.GITHUB_REPO) envVars.GITHUB_REPO = env.GITHUB_REPO;
 
+  // Tool API keys
+  if (env.BRAVE_API_KEY) envVars.BRAVE_API_KEY = env.BRAVE_API_KEY;
+
   return envVars;
 }
