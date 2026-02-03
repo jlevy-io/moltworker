@@ -119,8 +119,9 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(createMockProcess('s3fs on /data/moltbot type fuse.s3fs\n'))
         .mockResolvedValueOnce(createMockProcess('ok'))  // restore-complete
         // No age check — force skips it
-        .mockResolvedValueOnce(createMockProcess(''))     // rsync
-        .mockResolvedValueOnce(createMockProcess(timestamp));
+        .mockResolvedValueOnce(createMockProcess(''))     // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_OK'))  // tar+cp
+        .mockResolvedValueOnce(createMockProcess(timestamp)); // cat .last-sync
 
       const env = createMockEnvWithR2();
       const result = await syncToR2(sandbox, env, { force: true });
@@ -159,8 +160,9 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(createMockProcess('ok'))
         .mockResolvedValueOnce(createMockProcess(oldBoot))
         .mockResolvedValueOnce(createMockProcess('0\n---\n10')) // 0 lastTouchedAt but 10 files
-        .mockResolvedValueOnce(createMockProcess(''))            // rsync
-        .mockResolvedValueOnce(createMockProcess(timestamp));
+        .mockResolvedValueOnce(createMockProcess(''))            // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_OK'))     // tar+cp
+        .mockResolvedValueOnce(createMockProcess(timestamp));    // cat .last-sync
 
       const env = createMockEnvWithR2();
       const result = await syncToR2(sandbox, env);
@@ -176,8 +178,9 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(createMockProcess('s3fs on /data/moltbot type fuse.s3fs\n'))
         .mockResolvedValueOnce(createMockProcess('ok'))  // restore-complete
         // No age or state check — force skips both
-        .mockResolvedValueOnce(createMockProcess(''))     // rsync
-        .mockResolvedValueOnce(createMockProcess(timestamp));
+        .mockResolvedValueOnce(createMockProcess(''))     // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_OK'))  // tar+cp
+        .mockResolvedValueOnce(createMockProcess(timestamp)); // cat .last-sync
 
       const env = createMockEnvWithR2();
       const result = await syncToR2(sandbox, env, { force: true });
@@ -192,15 +195,17 @@ describe('syncToR2', () => {
       const { sandbox, startProcessMock } = createMockSandbox();
       const timestamp = '2026-01-31T12:00:00+00:00';
 
-      // Calls: mount check, restore-complete, boot-timestamp, state-check, rsync, cat timestamp
+      // Calls: mount check, restore-complete, boot-timestamp, state-check,
+      //        rm .last-sync, tar+cp (SYNC_OK), cat .last-sync
       const mocks = healthyCheckMocks();
       startProcessMock
         .mockResolvedValueOnce(mocks[0])
         .mockResolvedValueOnce(mocks[1])
         .mockResolvedValueOnce(mocks[2])
         .mockResolvedValueOnce(mocks[3])
-        .mockResolvedValueOnce(createMockProcess(''))     // rsync
-        .mockResolvedValueOnce(createMockProcess(timestamp));
+        .mockResolvedValueOnce(createMockProcess(''))           // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_OK'))    // tar+cp
+        .mockResolvedValueOnce(createMockProcess(timestamp));   // cat .last-sync
 
       const env = createMockEnvWithR2();
       const result = await syncToR2(sandbox, env);
@@ -209,7 +214,7 @@ describe('syncToR2', () => {
       expect(result.lastSync).toBe(timestamp);
     });
 
-    it('returns error when rsync fails (no timestamp created)', async () => {
+    it('returns error when sync command prints SYNC_FAIL', async () => {
       const { sandbox, startProcessMock } = createMockSandbox();
 
       const mocks = healthyCheckMocks();
@@ -218,17 +223,18 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(mocks[1])
         .mockResolvedValueOnce(mocks[2])
         .mockResolvedValueOnce(mocks[3])
-        .mockResolvedValueOnce(createMockProcess('', { exitCode: 1 })) // rsync fails
-        .mockResolvedValueOnce(createMockProcess(''));                   // empty timestamp
+        .mockResolvedValueOnce(createMockProcess(''))           // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_FAIL')); // tar+cp failed
 
       const env = createMockEnvWithR2();
       const result = await syncToR2(sandbox, env);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Sync failed');
+      expect(result.details).toContain('Sync command failed');
     });
 
-    it('verifies rsync command does NOT contain --delete', async () => {
+    it('deletes .last-sync before sync to prevent stale reads', async () => {
       const { sandbox, startProcessMock } = createMockSandbox();
       const timestamp = '2026-01-31T12:00:00+00:00';
 
@@ -238,22 +244,20 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(mocks[1])
         .mockResolvedValueOnce(mocks[2])
         .mockResolvedValueOnce(mocks[3])
-        .mockResolvedValueOnce(createMockProcess(''))
+        .mockResolvedValueOnce(createMockProcess(''))           // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_OK'))
         .mockResolvedValueOnce(createMockProcess(timestamp));
 
       const env = createMockEnvWithR2();
       await syncToR2(sandbox, env);
 
-      // 5th call (index 4) should be rsync
-      const rsyncCall = startProcessMock.mock.calls[4][0];
-      expect(rsyncCall).toContain('rsync');
-      expect(rsyncCall).toContain('--no-times');
-      expect(rsyncCall).not.toContain('--delete');
-      expect(rsyncCall).toContain('/root/.clawdbot/');
-      expect(rsyncCall).toContain('/data/moltbot/');
+      // 5th call (index 4) should be rm -f .last-sync
+      const rmCall = startProcessMock.mock.calls[4][0];
+      expect(rmCall).toContain('rm -f');
+      expect(rmCall).toContain('.last-sync');
     });
 
-    it('excludes marker files from rsync', async () => {
+    it('uses tar to create archives instead of rsync', async () => {
       const { sandbox, startProcessMock } = createMockSandbox();
       const timestamp = '2026-01-31T12:00:00+00:00';
 
@@ -263,15 +267,64 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(mocks[1])
         .mockResolvedValueOnce(mocks[2])
         .mockResolvedValueOnce(mocks[3])
-        .mockResolvedValueOnce(createMockProcess(''))
+        .mockResolvedValueOnce(createMockProcess(''))           // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_OK'))
         .mockResolvedValueOnce(createMockProcess(timestamp));
 
       const env = createMockEnvWithR2();
       await syncToR2(sandbox, env);
 
-      const rsyncCall = startProcessMock.mock.calls[4][0];
-      expect(rsyncCall).toContain(".boot-timestamp");
-      expect(rsyncCall).toContain(".restore-complete");
+      // 6th call (index 5) should be the tar+cp sync command
+      const syncCall = startProcessMock.mock.calls[5][0];
+      expect(syncCall).toContain('tar czf');
+      expect(syncCall).toContain('moltbot-backup.tar.gz');
+      expect(syncCall).toContain('skills-backup.tar.gz');
+      expect(syncCall).not.toContain('rsync');
+      expect(syncCall).toContain('/data/moltbot/');
+    });
+
+    it('excludes marker files from tar archives', async () => {
+      const { sandbox, startProcessMock } = createMockSandbox();
+      const timestamp = '2026-01-31T12:00:00+00:00';
+
+      const mocks = healthyCheckMocks();
+      startProcessMock
+        .mockResolvedValueOnce(mocks[0])
+        .mockResolvedValueOnce(mocks[1])
+        .mockResolvedValueOnce(mocks[2])
+        .mockResolvedValueOnce(mocks[3])
+        .mockResolvedValueOnce(createMockProcess(''))           // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_OK'))
+        .mockResolvedValueOnce(createMockProcess(timestamp));
+
+      const env = createMockEnvWithR2();
+      await syncToR2(sandbox, env);
+
+      const syncCall = startProcessMock.mock.calls[5][0];
+      expect(syncCall).toContain('.boot-timestamp');
+      expect(syncCall).toContain('.restore-complete');
+    });
+
+    it('includes SYNC_OK sentinel in sync command', async () => {
+      const { sandbox, startProcessMock } = createMockSandbox();
+      const timestamp = '2026-01-31T12:00:00+00:00';
+
+      const mocks = healthyCheckMocks();
+      startProcessMock
+        .mockResolvedValueOnce(mocks[0])
+        .mockResolvedValueOnce(mocks[1])
+        .mockResolvedValueOnce(mocks[2])
+        .mockResolvedValueOnce(mocks[3])
+        .mockResolvedValueOnce(createMockProcess(''))           // rm .last-sync
+        .mockResolvedValueOnce(createMockProcess('SYNC_OK'))
+        .mockResolvedValueOnce(createMockProcess(timestamp));
+
+      const env = createMockEnvWithR2();
+      await syncToR2(sandbox, env);
+
+      const syncCall = startProcessMock.mock.calls[5][0];
+      expect(syncCall).toContain('echo SYNC_OK');
+      expect(syncCall).toContain('echo SYNC_FAIL');
     });
   });
 });

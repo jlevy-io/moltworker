@@ -43,7 +43,7 @@ RUN mkdir -p /root/.clawdbot \
     && mkdir -p /root/clawd/skills
 
 # Copy startup script
-ARG CACHE_BUST=2026-02-02-openai-codex-provider
+ARG CACHE_BUST=2026-02-03-tar-based-sync
 COPY start-moltbot.sh /usr/local/bin/start-moltbot.sh
 RUN chmod +x /usr/local/bin/start-moltbot.sh && echo "build: $CACHE_BUST" > /usr/local/bin/.build-info
 

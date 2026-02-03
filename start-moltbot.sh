@@ -87,11 +87,19 @@ should_restore_from_r2() {
     fi
 }
 
-if [ -f "$BACKUP_DIR/clawdbot/clawdbot.json" ]; then
+# Try tar-based restore first (new format from tar-based sync)
+if [ -f "$BACKUP_DIR/clawdbot-backup.tar.gz" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring from R2 tar backup..."
+        tar xzf "$BACKUP_DIR/clawdbot-backup.tar.gz" -C /root
+        cp -f "$BACKUP_DIR/.last-sync" "$CONFIG_DIR/.last-sync" 2>/dev/null || true
+        echo "Restored config from R2 tar backup"
+    fi
+# Fallback: file-based restore (backward compat with rsync-era backups)
+elif [ -f "$BACKUP_DIR/clawdbot/clawdbot.json" ]; then
     if should_restore_from_r2; then
         echo "Restoring from R2 backup at $BACKUP_DIR/clawdbot..."
         cp -a "$BACKUP_DIR/clawdbot/." "$CONFIG_DIR/"
-        # Copy the sync timestamp to local so we know what version we have
         cp -f "$BACKUP_DIR/.last-sync" "$CONFIG_DIR/.last-sync" 2>/dev/null || true
         echo "Restored config from R2 backup"
     fi
@@ -111,7 +119,14 @@ fi
 
 # Restore skills from R2 backup if available (only if R2 is newer)
 SKILLS_DIR="/root/clawd/skills"
-if [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ]; then
+if [ -f "$BACKUP_DIR/skills-backup.tar.gz" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring skills from R2 tar backup..."
+        mkdir -p "$SKILLS_DIR"
+        tar xzf "$BACKUP_DIR/skills-backup.tar.gz" -C /root/clawd
+        echo "Restored skills from R2 tar backup"
+    fi
+elif [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ]; then
     if should_restore_from_r2; then
         echo "Restoring skills from $BACKUP_DIR/skills..."
         mkdir -p "$SKILLS_DIR"
@@ -122,7 +137,14 @@ fi
 
 # Restore gog config from R2 backup if available (OAuth tokens for Google Workspace)
 GOG_CONFIG_DIR="/root/.config/gogcli"
-if [ -d "$BACKUP_DIR/gogcli" ] && [ "$(ls -A $BACKUP_DIR/gogcli 2>/dev/null)" ]; then
+if [ -f "$BACKUP_DIR/gogcli-backup.tar.gz" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring gog config from R2 tar backup..."
+        mkdir -p "$GOG_CONFIG_DIR"
+        tar xzf "$BACKUP_DIR/gogcli-backup.tar.gz" -C /root/.config
+        echo "Restored gog config from R2 tar backup"
+    fi
+elif [ -d "$BACKUP_DIR/gogcli" ] && [ "$(ls -A $BACKUP_DIR/gogcli 2>/dev/null)" ]; then
     if should_restore_from_r2; then
         echo "Restoring gog config from $BACKUP_DIR/gogcli..."
         mkdir -p "$GOG_CONFIG_DIR"

@@ -1,8 +1,8 @@
 import type { Sandbox } from '@cloudflare/sandbox';
 import type { MoltbotEnv } from '../types';
-import { R2_MOUNT_PATH, MIN_BOOT_AGE_SECONDS } from '../config';
+import { R2_MOUNT_PATH, MIN_BOOT_AGE_SECONDS, SYNC_TIMEOUT_MS } from '../config';
 import { mountR2Storage } from './r2';
-import { waitForProcess } from './utils';
+import { waitForProcess, waitForOutput } from './utils';
 
 /**
  * Sync the /root/clawd workspace to GitHub via git add/commit/push.
@@ -72,8 +72,8 @@ export interface SyncResult {
  *    a. Restore-complete marker must exist (always enforced)
  *    b. Container must be older than MIN_BOOT_AGE_SECONDS (skippable with force)
  *    c. Container must have meaningful state beyond template config (skippable with force)
- * 3. Runs rsync to copy config to R2 (without --delete to prevent data loss)
- * 4. Writes a timestamp file for tracking
+ * 3. Creates tar archives locally and copies them to R2 (2 file writes instead of many)
+ * 4. Uses SYNC_OK/SYNC_FAIL sentinels for reliable completion detection
  *
  * @param sandbox - The sandbox instance
  * @param env - Worker environment bindings
@@ -184,42 +184,59 @@ export async function syncToR2(sandbox: Sandbox, env: MoltbotEnv, options: SyncO
   }
 
   // ── Sync ─────────────────────────────────────────────────────
-  // Run rsync WITHOUT --delete. This means orphan files may accumulate in R2,
-  // but a fresh/empty container can never wipe the backup.
-  // Exclude marker files and temp files from sync.
+  // Tar-based backup: create compressed archives locally (fast) then copy
+  // two files to R2, instead of many individual writes via rsync/FUSE.
+  // The command prints SYNC_OK or SYNC_FAIL as a sentinel for waitForOutput().
+
+  // Delete .last-sync BEFORE sync to prevent stale-timestamp false positives
+  try {
+    const rmProc = await sandbox.startProcess(`rm -f ${R2_MOUNT_PATH}/.last-sync`);
+    await waitForProcess(rmProc, 5000);
+  } catch {
+    // Non-fatal — continue with sync
+  }
+
   const syncCmd = [
-    `rsync -r --no-times`,
+    `tar czf /tmp/moltbot-backup.tar.gz`,
     `--exclude='*.lock' --exclude='*.log' --exclude='*.tmp'`,
     `--exclude='.boot-timestamp' --exclude='.restore-complete'`,
-    `/root/.clawdbot/ ${R2_MOUNT_PATH}/clawdbot/`,
-    `&& rsync -r --no-times /root/clawd/skills/ ${R2_MOUNT_PATH}/skills/`,
-    `&& ([ -d /root/.config/gogcli ] && rsync -r --no-times /root/.config/gogcli/ ${R2_MOUNT_PATH}/gogcli/ || true)`,
+    `-C /root .clawdbot`,
+    `&& tar czf /tmp/skills-backup.tar.gz -C /root/clawd skills`,
+    `&& cp /tmp/moltbot-backup.tar.gz ${R2_MOUNT_PATH}/clawdbot-backup.tar.gz`,
+    `&& cp /tmp/skills-backup.tar.gz ${R2_MOUNT_PATH}/skills-backup.tar.gz`,
+    `&& ([ -d /root/.config/gogcli ] && tar czf /tmp/gogcli-backup.tar.gz -C /root/.config gogcli && cp /tmp/gogcli-backup.tar.gz ${R2_MOUNT_PATH}/gogcli-backup.tar.gz || true)`,
     `&& ([ -f /root/.ms-graph-tokens.json ] && cp /root/.ms-graph-tokens.json ${R2_MOUNT_PATH}/ms-graph-tokens.json || true)`,
     `&& date -Iseconds > ${R2_MOUNT_PATH}/.last-sync`,
+    `&& echo SYNC_OK`,
+    `|| echo SYNC_FAIL`,
   ].join(' ');
 
   try {
     const proc = await sandbox.startProcess(syncCmd);
-    await waitForProcess(proc, 30000); // 30 second timeout for sync
+    const result = await waitForOutput(proc, ['SYNC_OK', 'SYNC_FAIL'], SYNC_TIMEOUT_MS);
 
-    // Check for success by reading the timestamp file
-    // (process status may not update reliably in sandbox API)
-    // Note: backup structure is ${R2_MOUNT_PATH}/clawdbot/ and ${R2_MOUNT_PATH}/skills/
-    const timestampProc = await sandbox.startProcess(`cat ${R2_MOUNT_PATH}/.last-sync`);
-    await waitForProcess(timestampProc, 5000);
-    const timestampLogs = await timestampProc.getLogs();
-    const lastSync = timestampLogs.stdout?.trim();
+    if (result.found && result.stdout.includes('SYNC_OK')) {
+      // Read the timestamp written by the sync command
+      const timestampProc = await sandbox.startProcess(`cat ${R2_MOUNT_PATH}/.last-sync`);
+      await waitForProcess(timestampProc, 5000);
+      const timestampLogs = await timestampProc.getLogs();
+      const lastSync = timestampLogs.stdout?.trim();
 
-    if (lastSync && lastSync.match(/^\d{4}-\d{2}-\d{2}/)) {
-      return { success: true, lastSync };
-    } else {
-      const logs = await proc.getLogs();
-      return {
-        success: false,
-        error: 'Sync failed',
-        details: logs.stderr || logs.stdout || 'No timestamp file created',
-      };
+      if (lastSync && lastSync.match(/^\d{4}-\d{2}-\d{2}/)) {
+        return { success: true, lastSync };
+      }
+      return { success: true };
     }
+
+    // SYNC_FAIL or timeout
+    const errDetail = result.stdout.includes('SYNC_FAIL')
+      ? 'Sync command failed'
+      : 'Sync timed out';
+    return {
+      success: false,
+      error: 'Sync failed',
+      details: `${errDetail}: ${result.stderr || result.stdout}`.slice(0, 500),
+    };
   } catch (err) {
     return {
       success: false,

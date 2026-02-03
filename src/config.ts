@@ -17,3 +17,6 @@ export const R2_BUCKET_NAME = 'moltbot-data';
 /** Minimum container age (in seconds) before allowing R2 sync.
  *  Prevents a fresh/empty container from overwriting good backup data. */
 export const MIN_BOOT_AGE_SECONDS = 600;
+
+/** Maximum time to wait for a sync operation to complete (ms) */
+export const SYNC_TIMEOUT_MS = 60_000;
