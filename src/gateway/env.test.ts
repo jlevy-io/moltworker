@@ -237,6 +237,23 @@ describe('buildEnvVars', () => {
     expect(result.THINKING_DEFAULT).toBeUndefined();
   });
 
+  it('includes TYPING_MODE and TYPING_INTERVAL_SECONDS when set', () => {
+    const env = createMockEnv({
+      TYPING_MODE: 'instant',
+      TYPING_INTERVAL_SECONDS: '6',
+    });
+    const result = buildEnvVars(env);
+    expect(result.TYPING_MODE).toBe('instant');
+    expect(result.TYPING_INTERVAL_SECONDS).toBe('6');
+  });
+
+  it('omits TYPING_MODE and TYPING_INTERVAL_SECONDS when not set', () => {
+    const env = createMockEnv();
+    const result = buildEnvVars(env);
+    expect(result.TYPING_MODE).toBeUndefined();
+    expect(result.TYPING_INTERVAL_SECONDS).toBeUndefined();
+  });
+
   it('includes OpenAI Codex tokens when set', () => {
     const env = createMockEnv({
       OPENAI_CODEX_ACCESS_TOKEN: 'eyJhbGciOiJSUzI1NiJ9.test-access-token',
