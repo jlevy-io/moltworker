@@ -359,6 +359,10 @@ if (process.env.THINKING_DEFAULT) {
     config.agents.defaults.thinkingDefault = process.env.THINKING_DEFAULT;
 }
 
+// Typing indicator: start immediately in all contexts (DMs, mentions, group channels)
+config.agents.defaults.typingMode = process.env.TYPING_MODE || 'instant';
+config.agents.defaults.typingIntervalSeconds = parseInt(process.env.TYPING_INTERVAL_SECONDS || '6', 10);
+
 // Auth config for Codex OAuth
 config.auth = { profiles: {}, order: {} };
 config.auth.profiles['openai-codex:default'] = { provider: 'openai-codex', mode: 'oauth' };
