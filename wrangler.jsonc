@@ -37,7 +37,7 @@
     {
       "class_name": "Sandbox",
       "image": "./Dockerfile",
-      "instance_type": "standard-1",
+      "instance_type": "standard-4",
       "max_instances": 1,
     },
   ],
@@ -76,6 +76,7 @@
   // AI Provider (at least one set required):
   // - ANTHROPIC_API_KEY: Direct Anthropic API key
   // - OPENAI_API_KEY: Direct OpenAI API key
+  // - OPENAI_CODEX_ACCESS_TOKEN + OPENAI_CODEX_REFRESH_TOKEN: ChatGPT Pro OAuth
   // - Cloudflare AI Gateway (alternative to direct keys):
   //   - CLOUDFLARE_AI_GATEWAY_API_KEY: API key for requests through the gateway
   //   - CF_AI_GATEWAY_ACCOUNT_ID: Your Cloudflare account ID
@@ -88,9 +89,24 @@
   // - MOLTBOT_GATEWAY_TOKEN: Token to protect gateway access
   // - CF_ACCESS_TEAM_DOMAIN: Cloudflare Access team domain
   // - CF_ACCESS_AUD: Cloudflare Access application audience
+  // - BRIDGE_SECRET: Shared secret for /bridge MCP WebSocket relay
   //
   // Chat channels (optional):
-  // - TELEGRAM_BOT_TOKEN, DISCORD_BOT_TOKEN, SLACK_BOT_TOKEN, SLACK_APP_TOKEN
+  // - TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOW_FROM, TELEGRAM_DM_POLICY
+  // - DISCORD_BOT_TOKEN, DISCORD_DM_POLICY
+  // - SLACK_BOT_TOKEN, SLACK_APP_TOKEN, SLACK_DM_POLICY, SLACK_ALLOW_FROM, SLACK_REQUIRE_MENTION
+  //
+  // Agent config (optional):
+  // - THINKING_DEFAULT: off, minimal, low, medium, high, xhigh
+  // - TYPING_MODE, TYPING_INTERVAL_SECONDS
+  // - BRAVE_API_KEY: For web_search tool
+  //
+  // External tools (optional):
+  // - GOG_CLIENT_SECRET_JSON: Base64-encoded Google OAuth client secret JSON
+  // - GOG_KEYRING_PASSWORD: Encryption key for gog token storage
+  // - HIMALAYA_EMAIL, HIMALAYA_IMAP_PASSWORD: Hotmail/Outlook IMAP credentials
+  // - MS_GRAPH_CLIENT_ID: Azure app registration for Microsoft Graph API
+  // - GITHUB_PAT, GITHUB_REPO: Git workspace backup
   //
   // Browser automation (optional):
   // - CDP_SECRET: Shared secret for /cdp endpoint authentication
