@@ -26,7 +26,7 @@ import { getSandbox, Sandbox, type SandboxOptions } from '@cloudflare/sandbox';
 import type { AppEnv, MoltbotEnv } from './types';
 import { MOLTBOT_PORT } from './config';
 import { createAccessMiddleware } from './auth';
-import { ensureMoltbotGateway, findExistingMoltbotProcess, syncToR2 } from './gateway';
+import { ensureMoltbotGateway, findExistingMoltbotProcess, syncToR2, gitSync } from './gateway';
 import { publicRoutes, api, adminUi, bridge, debug, cdp } from './routes';
 import { redactSensitiveParams } from './utils/logging';
 import loadingPageHtml from './assets/loading.html';
@@ -479,6 +479,14 @@ async function scheduled(
     console.log('[cron] Backup sync completed successfully at', result.lastSync);
   } else {
     console.error('[cron] Backup sync failed:', result.error, result.details || '');
+  }
+
+  // Git workspace backup (independent of R2 sync result)
+  const gitResult = await gitSync(sandbox, env);
+  if (gitResult.success) {
+    console.log('[cron] Git sync completed');
+  } else if (gitResult.error !== 'Git backup is not configured') {
+    console.error('[cron] Git sync failed:', gitResult.error, gitResult.details || '');
   }
 }
 

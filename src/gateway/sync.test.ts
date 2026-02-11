@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { syncToR2 } from './sync';
+import { syncToR2, gitSync } from './sync';
 import {
   createMockEnv,
   createMockEnvWithR2,
@@ -324,5 +324,84 @@ describe('syncToR2', () => {
       expect(syncCall).toContain('echo SYNC_OK');
       expect(syncCall).toContain('echo SYNC_FAIL');
     });
+  });
+});
+
+describe('gitSync', () => {
+  beforeEach(() => {
+    suppressConsole();
+  });
+
+  it('returns early when GITHUB_PAT is not configured', async () => {
+    const { sandbox } = createMockSandbox();
+    const env = createMockEnv({ GITHUB_REPO: 'user/repo' });
+
+    const result = await gitSync(sandbox, env);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Git backup is not configured');
+  });
+
+  it('returns early when GITHUB_REPO is not configured', async () => {
+    const { sandbox } = createMockSandbox();
+    const env = createMockEnv({ GITHUB_PAT: 'ghp_test123' });
+
+    const result = await gitSync(sandbox, env);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Git backup is not configured');
+  });
+
+  it('runs git commands and returns success', async () => {
+    const { sandbox, startProcessMock } = createMockSandbox();
+    startProcessMock.mockResolvedValueOnce(
+      createMockProcess('Everything up-to-date\n'),
+    );
+
+    const env = createMockEnv({
+      GITHUB_PAT: 'ghp_test123',
+      GITHUB_REPO: 'user/workspace',
+    });
+    const result = await gitSync(sandbox, env);
+
+    expect(result.success).toBe(true);
+    // Verify the command includes cd, git diff, and git push
+    const cmd = startProcessMock.mock.calls[0][0];
+    expect(cmd).toContain('cd /root/clawd');
+    expect(cmd).toContain('git diff --quiet HEAD');
+    expect(cmd).toContain('git add -A');
+    expect(cmd).toContain('git push origin HEAD');
+  });
+
+  it('returns failure when git push reports fatal error', async () => {
+    const { sandbox, startProcessMock } = createMockSandbox();
+    startProcessMock.mockResolvedValueOnce(
+      createMockProcess('', { stderr: 'fatal: remote origin not found' }),
+    );
+
+    const env = createMockEnv({
+      GITHUB_PAT: 'ghp_test123',
+      GITHUB_REPO: 'user/workspace',
+    });
+    const result = await gitSync(sandbox, env);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Git sync failed');
+    expect(result.details).toContain('fatal:');
+  });
+
+  it('handles startProcess exception gracefully', async () => {
+    const { sandbox, startProcessMock } = createMockSandbox();
+    startProcessMock.mockRejectedValueOnce(new Error('Container not running'));
+
+    const env = createMockEnv({
+      GITHUB_PAT: 'ghp_test123',
+      GITHUB_REPO: 'user/workspace',
+    });
+    const result = await gitSync(sandbox, env);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Git sync error');
+    expect(result.details).toBe('Container not running');
   });
 });

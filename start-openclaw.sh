@@ -139,6 +139,54 @@ elif [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" 
 fi
 
 # ============================================================
+# RESTORE GIT WORKSPACE (if credentials provided)
+# ============================================================
+# Git restore is best-effort — failures must NOT prevent the gateway from starting.
+if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
+    echo "Configuring git workspace for $GITHUB_REPO..."
+    (
+        set -e
+        cd /root/clawd
+
+        export GIT_TERMINAL_PROMPT=0
+        git config --global credential.helper ""
+
+        if [ ! -d .git ]; then
+            echo "[git] Initializing new repo..."
+            git init
+            git checkout -b main
+        fi
+
+        git config user.email "rook@clawd.bot"
+        git config user.name "Rook"
+
+        git remote remove origin 2>/dev/null || true
+        git remote add origin "https://${GITHUB_PAT}@github.com/${GITHUB_REPO}.git"
+
+        echo "[git] Checking remote branches..."
+        if timeout 30 git ls-remote --exit-code origin main 2>&1; then
+            echo "[git] Fetching main branch..."
+            timeout 60 git fetch origin main 2>&1
+            git reset --hard origin/main
+            echo "[git] Workspace restored from $GITHUB_REPO (main)"
+        elif timeout 30 git ls-remote --exit-code origin master 2>&1; then
+            echo "[git] Fetching master branch..."
+            timeout 60 git fetch origin master 2>&1
+            git checkout -B main origin/master
+            echo "[git] Workspace restored from $GITHUB_REPO (master→main)"
+        else
+            echo "[git] Remote repo is empty or unreachable — will push on first sync"
+        fi
+    ) || {
+        echo "[git] WARNING: Git workspace restore failed with exit code $?"
+        echo "[git] Gateway will start without workspace restore."
+    }
+    cd /root/clawd
+else
+    echo "Git workspace not configured (GITHUB_PAT or GITHUB_REPO not set)"
+fi
+
+# ============================================================
 # ONBOARD (only if no config exists yet)
 # ============================================================
 if [ ! -f "$CONFIG_FILE" ]; then
