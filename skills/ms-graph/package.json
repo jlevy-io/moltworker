@@ -1,0 +1,16 @@
+{
+  "name": "ms-graph-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Microsoft Graph API skill for Hotmail/Outlook email access via device code flow",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^2.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

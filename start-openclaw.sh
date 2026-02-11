@@ -138,6 +138,35 @@ elif [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" 
     fi
 fi
 
+# Restore gog config from R2 backup if available (OAuth tokens for Google Workspace)
+GOG_CONFIG_DIR="/root/.config/gogcli"
+if [ -f "$BACKUP_DIR/gogcli-backup.tar.gz" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring gog config from R2 tar backup..."
+        mkdir -p "$GOG_CONFIG_DIR"
+        tar xzf "$BACKUP_DIR/gogcli-backup.tar.gz" -C /root/.config
+        echo "Restored gog config from R2 tar backup"
+    fi
+elif [ -d "$BACKUP_DIR/gogcli" ] && [ "$(ls -A $BACKUP_DIR/gogcli 2>/dev/null)" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring gog config from $BACKUP_DIR/gogcli..."
+        mkdir -p "$GOG_CONFIG_DIR"
+        cp -a "$BACKUP_DIR/gogcli/." "$GOG_CONFIG_DIR/"
+        echo "Restored gog config from R2 backup"
+    fi
+fi
+
+# Restore ms-graph token cache from R2 backup if available
+MS_GRAPH_TOKEN_FILE="/root/.ms-graph-tokens.json"
+if [ -f "$BACKUP_DIR/ms-graph-tokens.json" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring ms-graph tokens from R2 backup..."
+        cp -f "$BACKUP_DIR/ms-graph-tokens.json" "$MS_GRAPH_TOKEN_FILE"
+        chmod 600 "$MS_GRAPH_TOKEN_FILE"
+        echo "Restored ms-graph token cache from R2 backup"
+    fi
+fi
+
 # ============================================================
 # RESTORE GIT WORKSPACE (if credentials provided)
 # ============================================================
@@ -437,6 +466,69 @@ if [ -f "$AUTH_PROFILES_FILE" ] && [ ! -f "$AGENT_AUTH_DIR/auth-profiles.json" ]
     cp "$AUTH_PROFILES_FILE" "$AGENT_AUTH_DIR/auth-profiles.json"
     chmod 600 "$AGENT_AUTH_DIR/auth-profiles.json"
     echo "Copied auth-profiles.json to agent dir ($AGENT_AUTH_DIR)"
+fi
+
+# ============================================================
+# WRITE GOG OAUTH CLIENT CREDENTIALS
+# ============================================================
+if [ -n "$GOG_CLIENT_SECRET_JSON" ]; then
+    # Decode the base64 JSON to a temp file and let gog process it
+    # (gog auth credentials transforms Google's format into its own config)
+    GOG_TEMP="/tmp/gog_client_secret.json"
+    echo "$GOG_CLIENT_SECRET_JSON" | base64 -d > "$GOG_TEMP"
+    gog auth credentials "$GOG_TEMP" --no-input 2>&1 || echo "Warning: gog auth credentials failed"
+    rm -f "$GOG_TEMP"
+    echo "Wrote gog OAuth client credentials via gog auth credentials"
+else
+    echo "Gog client credentials not configured (GOG_CLIENT_SECRET_JSON not set)"
+fi
+
+# ============================================================
+# GENERATE HIMALAYA CONFIG (Hotmail IMAP)
+# ============================================================
+if [ -n "$HIMALAYA_EMAIL" ] && [ -n "$HIMALAYA_IMAP_PASSWORD" ]; then
+    HIMALAYA_CONFIG_DIR="/root/.config/himalaya"
+    mkdir -p "$HIMALAYA_CONFIG_DIR"
+    cat > "$HIMALAYA_CONFIG_DIR/config.toml" << EOFHIMALAYA
+[accounts.hotmail]
+email = "$HIMALAYA_EMAIL"
+default = true
+
+backend.type = "imap"
+backend.host = "outlook.office365.com"
+backend.port = 993
+backend.encryption.type = "tls"
+backend.login = "$HIMALAYA_EMAIL"
+backend.auth.type = "password"
+backend.auth.raw = "$HIMALAYA_IMAP_PASSWORD"
+
+message.send.backend.type = "smtp"
+message.send.backend.host = "smtp-mail.outlook.com"
+message.send.backend.port = 587
+message.send.backend.encryption.type = "start-tls"
+message.send.backend.login = "$HIMALAYA_EMAIL"
+message.send.backend.auth.type = "password"
+message.send.backend.auth.raw = "$HIMALAYA_IMAP_PASSWORD"
+EOFHIMALAYA
+    chmod 600 "$HIMALAYA_CONFIG_DIR/config.toml"
+    echo "Generated himalaya config for $HIMALAYA_EMAIL"
+else
+    echo "Himalaya not configured (HIMALAYA_EMAIL or HIMALAYA_IMAP_PASSWORD not set)"
+fi
+
+# ============================================================
+# INSTALL SKILL DEPENDENCIES
+# ============================================================
+# Install npm dependencies for skills that ship their own Node.js code.
+# This runs at startup (not in Dockerfile) so R2-restored skills get deps too.
+MS_GRAPH_SKILL_DIR="$SKILLS_DIR/ms-graph"
+if [ -f "$MS_GRAPH_SKILL_DIR/package.json" ]; then
+    echo "Installing ms-graph skill dependencies..."
+    (cd "$MS_GRAPH_SKILL_DIR" && npm install --production 2>&1) || {
+        echo "WARNING: ms-graph skill npm install failed"
+    }
+else
+    echo "ms-graph skill not found, skipping dependency install"
 fi
 
 # ============================================================

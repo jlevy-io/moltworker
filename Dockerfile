@@ -25,6 +25,34 @@ RUN npm install -g pnpm
 RUN npm install -g openclaw@2026.2.3 \
     && openclaw --version
 
+# Install himalaya (IMAP email CLI) - pinned version for reproducible builds
+ENV HIMALAYA_VERSION=1.1.0
+RUN ARCH="$(dpkg --print-architecture)" \
+    && case "${ARCH}" in \
+         amd64) HIMALAYA_ARCH="x86_64" ;; \
+         arm64) HIMALAYA_ARCH="aarch64" ;; \
+         *) echo "Unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
+       esac \
+    && curl -fsSL https://github.com/pimalaya/himalaya/releases/download/v${HIMALAYA_VERSION}/himalaya.${HIMALAYA_ARCH}-linux.tgz -o /tmp/himalaya.tgz \
+    && tar -xzf /tmp/himalaya.tgz -C /usr/local/bin himalaya \
+    && rm /tmp/himalaya.tgz \
+    && chmod +x /usr/local/bin/himalaya \
+    && himalaya --version
+
+# Install gog (Google Workspace CLI) - pinned version for reproducible builds
+ENV GOG_VERSION=0.9.0
+RUN ARCH="$(dpkg --print-architecture)" \
+    && case "${ARCH}" in \
+         amd64) GOG_ARCH="amd64" ;; \
+         arm64) GOG_ARCH="arm64" ;; \
+         *) echo "Unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
+       esac \
+    && curl -fsSL https://github.com/steipete/gogcli/releases/download/v${GOG_VERSION}/gogcli_${GOG_VERSION}_linux_${GOG_ARCH}.tar.gz -o /tmp/gog.tar.gz \
+    && tar -xzf /tmp/gog.tar.gz -C /usr/local/bin gog \
+    && rm /tmp/gog.tar.gz \
+    && chmod +x /usr/local/bin/gog \
+    && gog --version
+
 # Create OpenClaw directories
 # Legacy .clawdbot paths are kept for R2 backup migration
 RUN mkdir -p /root/.openclaw \
@@ -36,8 +64,9 @@ RUN mkdir -p /root/.openclaw \
 COPY start-openclaw.sh /usr/local/bin/start-openclaw.sh
 RUN chmod +x /usr/local/bin/start-openclaw.sh
 
-# Copy custom skills
+# Copy custom skills and build any that have TypeScript source
 COPY skills/ /root/clawd/skills/
+RUN cd /root/clawd/skills/ms-graph && npm install && npm run build && rm -rf node_modules
 
 # Set working directory
 WORKDIR /root/clawd
