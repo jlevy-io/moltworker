@@ -24,6 +24,11 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   if (env.ANTHROPIC_API_KEY) envVars.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY;
   if (env.OPENAI_API_KEY) envVars.OPENAI_API_KEY = env.OPENAI_API_KEY;
 
+  // OpenAI Codex OAuth tokens (ChatGPT Pro)
+  if (env.OPENAI_CODEX_ACCESS_TOKEN) envVars.OPENAI_CODEX_ACCESS_TOKEN = env.OPENAI_CODEX_ACCESS_TOKEN;
+  if (env.OPENAI_CODEX_REFRESH_TOKEN) envVars.OPENAI_CODEX_REFRESH_TOKEN = env.OPENAI_CODEX_REFRESH_TOKEN;
+  if (env.OPENAI_CODEX_ACCOUNT_ID) envVars.OPENAI_CODEX_ACCOUNT_ID = env.OPENAI_CODEX_ACCOUNT_ID;
+
   // Legacy AI Gateway support: AI_GATEWAY_BASE_URL + AI_GATEWAY_API_KEY
   // When set, these override direct keys for backward compatibility
   if (env.AI_GATEWAY_API_KEY && env.AI_GATEWAY_BASE_URL) {
@@ -39,16 +44,40 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   // Map MOLTBOT_GATEWAY_TOKEN to OPENCLAW_GATEWAY_TOKEN (container expects this name)
   if (env.MOLTBOT_GATEWAY_TOKEN) envVars.OPENCLAW_GATEWAY_TOKEN = env.MOLTBOT_GATEWAY_TOKEN;
   if (env.DEV_MODE) envVars.OPENCLAW_DEV_MODE = env.DEV_MODE;
+  // Agent defaults
+  if (env.THINKING_DEFAULT) envVars.THINKING_DEFAULT = env.THINKING_DEFAULT;
+  if (env.TYPING_MODE) envVars.TYPING_MODE = env.TYPING_MODE;
+  if (env.TYPING_INTERVAL_SECONDS) envVars.TYPING_INTERVAL_SECONDS = env.TYPING_INTERVAL_SECONDS;
+  // Channel tokens
   if (env.TELEGRAM_BOT_TOKEN) envVars.TELEGRAM_BOT_TOKEN = env.TELEGRAM_BOT_TOKEN;
   if (env.TELEGRAM_DM_POLICY) envVars.TELEGRAM_DM_POLICY = env.TELEGRAM_DM_POLICY;
+  if (env.TELEGRAM_ALLOW_FROM) envVars.TELEGRAM_ALLOW_FROM = env.TELEGRAM_ALLOW_FROM;
   if (env.DISCORD_BOT_TOKEN) envVars.DISCORD_BOT_TOKEN = env.DISCORD_BOT_TOKEN;
   if (env.DISCORD_DM_POLICY) envVars.DISCORD_DM_POLICY = env.DISCORD_DM_POLICY;
   if (env.SLACK_BOT_TOKEN) envVars.SLACK_BOT_TOKEN = env.SLACK_BOT_TOKEN;
   if (env.SLACK_APP_TOKEN) envVars.SLACK_APP_TOKEN = env.SLACK_APP_TOKEN;
+  if (env.SLACK_DM_POLICY) envVars.SLACK_DM_POLICY = env.SLACK_DM_POLICY;
+  if (env.SLACK_ALLOW_FROM) envVars.SLACK_ALLOW_FROM = env.SLACK_ALLOW_FROM;
+  if (env.SLACK_REQUIRE_MENTION) envVars.SLACK_REQUIRE_MENTION = env.SLACK_REQUIRE_MENTION;
+  // Infrastructure
   if (env.CF_AI_GATEWAY_MODEL) envVars.CF_AI_GATEWAY_MODEL = env.CF_AI_GATEWAY_MODEL;
   if (env.CF_ACCOUNT_ID) envVars.CF_ACCOUNT_ID = env.CF_ACCOUNT_ID;
   if (env.CDP_SECRET) envVars.CDP_SECRET = env.CDP_SECRET;
   if (env.WORKER_URL) envVars.WORKER_URL = env.WORKER_URL;
+  // Email CLI configuration
+  if (env.HIMALAYA_IMAP_PASSWORD) envVars.HIMALAYA_IMAP_PASSWORD = env.HIMALAYA_IMAP_PASSWORD;
+  if (env.HIMALAYA_EMAIL) envVars.HIMALAYA_EMAIL = env.HIMALAYA_EMAIL;
+  if (env.GOG_ACCOUNT) envVars.GOG_ACCOUNT = env.GOG_ACCOUNT;
+  if (env.GOG_KEYRING_PASSWORD) envVars.GOG_KEYRING_PASSWORD = env.GOG_KEYRING_PASSWORD;
+  if (env.GOG_KEYRING_PASSWORD) envVars.GOG_KEYRING_BACKEND = 'file';
+  if (env.GOG_CLIENT_SECRET_JSON) envVars.GOG_CLIENT_SECRET_JSON = env.GOG_CLIENT_SECRET_JSON;
+  // Microsoft Graph API
+  if (env.MS_GRAPH_CLIENT_ID) envVars.MS_GRAPH_CLIENT_ID = env.MS_GRAPH_CLIENT_ID;
+  // Git workspace backup
+  if (env.GITHUB_PAT) envVars.GITHUB_PAT = env.GITHUB_PAT;
+  if (env.GITHUB_REPO) envVars.GITHUB_REPO = env.GITHUB_REPO;
+  // Tool API keys
+  if (env.BRAVE_API_KEY) envVars.BRAVE_API_KEY = env.BRAVE_API_KEY;
 
   return envVars;
 }

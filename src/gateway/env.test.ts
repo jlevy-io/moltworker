@@ -158,4 +158,106 @@ describe('buildEnvVars', () => {
       TELEGRAM_BOT_TOKEN: 'tg',
     });
   });
+
+  // OpenAI Codex OAuth tokens
+  it('includes OpenAI Codex tokens when set', () => {
+    const env = createMockEnv({
+      OPENAI_CODEX_ACCESS_TOKEN: 'eyJhbGciOiJSUzI1NiJ9.test-access-token',
+      OPENAI_CODEX_REFRESH_TOKEN: 'v1.test-refresh-token',
+      OPENAI_CODEX_ACCOUNT_ID: 'acct_abc123',
+    });
+    const result = buildEnvVars(env);
+    expect(result.OPENAI_CODEX_ACCESS_TOKEN).toBe('eyJhbGciOiJSUzI1NiJ9.test-access-token');
+    expect(result.OPENAI_CODEX_REFRESH_TOKEN).toBe('v1.test-refresh-token');
+    expect(result.OPENAI_CODEX_ACCOUNT_ID).toBe('acct_abc123');
+  });
+
+  it('omits OpenAI Codex tokens when not set', () => {
+    const env = createMockEnv();
+    const result = buildEnvVars(env);
+    expect(result.OPENAI_CODEX_ACCESS_TOKEN).toBeUndefined();
+    expect(result.OPENAI_CODEX_REFRESH_TOKEN).toBeUndefined();
+    expect(result.OPENAI_CODEX_ACCOUNT_ID).toBeUndefined();
+  });
+
+  // Agent defaults
+  it('includes THINKING_DEFAULT when set', () => {
+    const env = createMockEnv({ THINKING_DEFAULT: 'low' });
+    const result = buildEnvVars(env);
+    expect(result.THINKING_DEFAULT).toBe('low');
+  });
+
+  it('includes TYPING_MODE and TYPING_INTERVAL_SECONDS when set', () => {
+    const env = createMockEnv({
+      TYPING_MODE: 'instant',
+      TYPING_INTERVAL_SECONDS: '6',
+    });
+    const result = buildEnvVars(env);
+    expect(result.TYPING_MODE).toBe('instant');
+    expect(result.TYPING_INTERVAL_SECONDS).toBe('6');
+  });
+
+  // Extended Slack config
+  it('includes extended Slack env vars when set', () => {
+    const env = createMockEnv({
+      SLACK_BOT_TOKEN: 'slack-bot',
+      SLACK_APP_TOKEN: 'slack-app',
+      SLACK_DM_POLICY: 'allowlist',
+      SLACK_ALLOW_FROM: 'U123,U456',
+      SLACK_REQUIRE_MENTION: 'false',
+    });
+    const result = buildEnvVars(env);
+    expect(result.SLACK_DM_POLICY).toBe('allowlist');
+    expect(result.SLACK_ALLOW_FROM).toBe('U123,U456');
+    expect(result.SLACK_REQUIRE_MENTION).toBe('false');
+  });
+
+  it('includes TELEGRAM_ALLOW_FROM when set', () => {
+    const env = createMockEnv({ TELEGRAM_ALLOW_FROM: '12345,67890' });
+    const result = buildEnvVars(env);
+    expect(result.TELEGRAM_ALLOW_FROM).toBe('12345,67890');
+  });
+
+  // Email CLI configuration
+  it('includes email CLI env vars when set', () => {
+    const env = createMockEnv({
+      HIMALAYA_IMAP_PASSWORD: 'app-password-123',
+      HIMALAYA_EMAIL: 'user@hotmail.com',
+      GOG_ACCOUNT: 'user@gmail.com',
+      GOG_KEYRING_PASSWORD: 'keyring-secret',
+      GOG_CLIENT_SECRET_JSON: 'eyJpbnN0YWxsZWQiOnt9fQ==',
+    });
+    const result = buildEnvVars(env);
+    expect(result.HIMALAYA_IMAP_PASSWORD).toBe('app-password-123');
+    expect(result.HIMALAYA_EMAIL).toBe('user@hotmail.com');
+    expect(result.GOG_ACCOUNT).toBe('user@gmail.com');
+    expect(result.GOG_KEYRING_PASSWORD).toBe('keyring-secret');
+    expect(result.GOG_KEYRING_BACKEND).toBe('file');
+    expect(result.GOG_CLIENT_SECRET_JSON).toBe('eyJpbnN0YWxsZWQiOnt9fQ==');
+  });
+
+  // Microsoft Graph
+  it('includes MS_GRAPH_CLIENT_ID when set', () => {
+    const env = createMockEnv({ MS_GRAPH_CLIENT_ID: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' });
+    const result = buildEnvVars(env);
+    expect(result.MS_GRAPH_CLIENT_ID).toBe('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+  });
+
+  // Git workspace backup
+  it('includes GITHUB_PAT and GITHUB_REPO when set', () => {
+    const env = createMockEnv({
+      GITHUB_PAT: 'ghp_test123',
+      GITHUB_REPO: 'user/workspace',
+    });
+    const result = buildEnvVars(env);
+    expect(result.GITHUB_PAT).toBe('ghp_test123');
+    expect(result.GITHUB_REPO).toBe('user/workspace');
+  });
+
+  // BRAVE_API_KEY
+  it('includes BRAVE_API_KEY when set', () => {
+    const env = createMockEnv({ BRAVE_API_KEY: 'BSA-test-key' });
+    const result = buildEnvVars(env);
+    expect(result.BRAVE_API_KEY).toBe('BSA-test-key');
+  });
 });
