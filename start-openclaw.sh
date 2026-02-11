@@ -22,6 +22,11 @@ echo "Backup directory: $BACKUP_DIR"
 
 mkdir -p "$CONFIG_DIR"
 
+# Write boot timestamp marker — the Worker uses this to enforce
+# a minimum container age before allowing R2 sync.
+date +%s > "$CONFIG_DIR/.boot-timestamp"
+echo "Boot timestamp written: $(cat $CONFIG_DIR/.boot-timestamp)"
+
 # ============================================================
 # RESTORE FROM R2 BACKUP
 # ============================================================
@@ -58,8 +63,16 @@ should_restore_from_r2() {
     fi
 }
 
-# Check for backup data in new openclaw/ prefix first, then legacy clawdbot/ prefix
-if [ -f "$BACKUP_DIR/openclaw/openclaw.json" ]; then
+# Try tar-based restore first (new format from tar-based sync)
+if [ -f "$BACKUP_DIR/openclaw-backup.tar.gz" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring from R2 tar backup..."
+        tar xzf "$BACKUP_DIR/openclaw-backup.tar.gz" -C /root
+        cp -f "$BACKUP_DIR/.last-sync" "$CONFIG_DIR/.last-sync" 2>/dev/null || true
+        echo "Restored config from R2 tar backup"
+    fi
+# Fallback: rsync-based restore (backward compat)
+elif [ -f "$BACKUP_DIR/openclaw/openclaw.json" ]; then
     if should_restore_from_r2; then
         echo "Restoring from R2 backup at $BACKUP_DIR/openclaw..."
         cp -a "$BACKUP_DIR/openclaw/." "$CONFIG_DIR/"
@@ -109,7 +122,14 @@ fi
 
 # Restore skills from R2 backup if available (only if R2 is newer)
 SKILLS_DIR="/root/clawd/skills"
-if [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ]; then
+if [ -f "$BACKUP_DIR/skills-backup.tar.gz" ]; then
+    if should_restore_from_r2; then
+        echo "Restoring skills from R2 tar backup..."
+        mkdir -p "$SKILLS_DIR"
+        tar xzf "$BACKUP_DIR/skills-backup.tar.gz" -C /root/clawd
+        echo "Restored skills from R2 tar backup"
+    fi
+elif [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ]; then
     if should_restore_from_r2; then
         echo "Restoring skills from $BACKUP_DIR/skills..."
         mkdir -p "$SKILLS_DIR"
@@ -149,6 +169,11 @@ if [ ! -f "$CONFIG_FILE" ]; then
 else
     echo "Using existing config"
 fi
+
+# Mark restore/init as complete — the Worker will refuse to sync until this
+# marker exists, preventing sync during a partial restore or init.
+touch "$CONFIG_DIR/.restore-complete"
+echo "Restore/init complete marker written"
 
 # ============================================================
 # PATCH CONFIG (channels, gateway auth, trusted proxies)

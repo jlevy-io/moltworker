@@ -22,3 +22,32 @@ export async function waitForProcess(
     attempts++;
   }
 }
+
+/**
+ * Wait for any of several sentinel strings to appear in process stdout.
+ *
+ * The Sandbox API's proc.status field never reliably transitions away from
+ * "running", so polling status is unreliable. This helper polls getLogs()
+ * for known sentinel strings instead — the command itself is responsible
+ * for printing a sentinel on completion.
+ */
+export async function waitForOutput(
+  proc: { getLogs(): Promise<{ stdout?: string; stderr?: string }> },
+  sentinel: string | string[],
+  timeoutMs: number,
+  pollIntervalMs = 1000,
+): Promise<{ found: boolean; stdout: string; stderr: string }> {
+  const sentinels = Array.isArray(sentinel) ? sentinel : [sentinel];
+  const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+  for (let i = 0; i < maxAttempts; i++) {
+    // eslint-disable-next-line no-await-in-loop -- intentional sequential polling
+    await new Promise((r) => setTimeout(r, pollIntervalMs));
+    const logs = await proc.getLogs();
+    const stdout = logs.stdout || '';
+    if (sentinels.some((s) => stdout.includes(s))) {
+      return { found: true, stdout, stderr: logs.stderr || '' };
+    }
+  }
+  const logs = await proc.getLogs();
+  return { found: false, stdout: logs.stdout || '', stderr: logs.stderr || '' };
+}
