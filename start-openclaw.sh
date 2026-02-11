@@ -239,6 +239,24 @@ if (process.env.CF_AI_GATEWAY_MODEL) {
     }
 }
 
+// OpenAI Codex provider (ChatGPT Pro via OAuth)
+// openai-codex is a built-in provider — do NOT define it in models.providers.
+// Just set model primary/fallbacks and register the auth profile.
+if (process.env.OPENAI_CODEX_ACCESS_TOKEN) {
+    console.log('Configuring OpenAI Codex as primary model');
+    config.agents = config.agents || {};
+    config.agents.defaults = config.agents.defaults || {};
+    config.agents.defaults.model = config.agents.defaults.model || {};
+    config.models = config.models || {};
+    delete config.models.mode;
+    config.models.providers = config.models.providers || {};
+    config.agents.defaults.model.primary = 'openai-codex/gpt-5.2';
+    config.agents.defaults.model.fallbacks = ['openai-codex/gpt-5.1-codex-mini'];
+    config.auth = { profiles: {}, order: {} };
+    config.auth.profiles['openai-codex:default'] = { provider: 'openai-codex', mode: 'oauth' };
+    config.auth.order['openai-codex'] = ['openai-codex:default'];
+}
+
 // Telegram configuration
 // Overwrite entire channel object to drop stale keys from old R2 backups
 // that would fail OpenClaw's strict config validation (see #47)
@@ -249,7 +267,9 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
         enabled: true,
         dmPolicy: dmPolicy,
     };
-    if (process.env.TELEGRAM_DM_ALLOW_FROM) {
+    if (process.env.TELEGRAM_ALLOW_FROM) {
+        config.channels.telegram.allowFrom = process.env.TELEGRAM_ALLOW_FROM.split(',');
+    } else if (process.env.TELEGRAM_DM_ALLOW_FROM) {
         config.channels.telegram.allowFrom = process.env.TELEGRAM_DM_ALLOW_FROM.split(',');
     } else if (dmPolicy === 'open') {
         config.channels.telegram.allowFrom = ['*'];
@@ -283,6 +303,43 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 console.log('Configuration patched successfully');
 EOFPATCH
+
+# ============================================================
+# SEED OPENAI CODEX AUTH PROFILES (OAuth tokens)
+# ============================================================
+# Only seed if auth-profiles.json does NOT already exist (R2 restore runs first
+# and may have brought back a file with auto-rotated tokens from a previous boot).
+AUTH_PROFILES_FILE="$CONFIG_DIR/auth-profiles.json"
+if [ -n "$OPENAI_CODEX_ACCESS_TOKEN" ] && [ -n "$OPENAI_CODEX_REFRESH_TOKEN" ] && [ ! -f "$AUTH_PROFILES_FILE" ]; then
+    echo "Seeding auth-profiles.json from OPENAI_CODEX_* env vars..."
+    node -e '
+      const profile = {
+        type: "oauth",
+        provider: "openai-codex",
+        access: process.env.OPENAI_CODEX_ACCESS_TOKEN,
+        refresh: process.env.OPENAI_CODEX_REFRESH_TOKEN,
+        expires: 0,
+        accountId: process.env.OPENAI_CODEX_ACCOUNT_ID || undefined,
+      };
+      const data = { profiles: { "openai-codex:default": profile } };
+      require("fs").writeFileSync(process.argv[1], JSON.stringify(data, null, 2));
+    ' "$AUTH_PROFILES_FILE"
+    chmod 600 "$AUTH_PROFILES_FILE"
+    echo "Seeded auth-profiles.json (gateway will auto-refresh tokens on first use)"
+elif [ -f "$AUTH_PROFILES_FILE" ]; then
+    echo "auth-profiles.json already exists (likely restored from R2), skipping seed"
+else
+    echo "No OPENAI_CODEX tokens set, skipping auth-profiles.json seed"
+fi
+
+# The gateway agent also needs auth-profiles.json in its own agentDir.
+AGENT_AUTH_DIR="$CONFIG_DIR/agents/main/agent"
+if [ -f "$AUTH_PROFILES_FILE" ] && [ ! -f "$AGENT_AUTH_DIR/auth-profiles.json" ]; then
+    mkdir -p "$AGENT_AUTH_DIR"
+    cp "$AUTH_PROFILES_FILE" "$AGENT_AUTH_DIR/auth-profiles.json"
+    chmod 600 "$AGENT_AUTH_DIR/auth-profiles.json"
+    echo "Copied auth-profiles.json to agent dir ($AGENT_AUTH_DIR)"
+fi
 
 # ============================================================
 # START GATEWAY
