@@ -330,6 +330,19 @@ if (process.env.OPENAI_CODEX_ACCESS_TOKEN) {
     config.auth.order['openai-codex'] = ['openai-codex:default'];
 }
 
+// Thinking mode configuration
+if (process.env.THINKING_DEFAULT) {
+    config.agents = config.agents || {};
+    config.agents.defaults = config.agents.defaults || {};
+    config.agents.defaults.thinkingDefault = process.env.THINKING_DEFAULT;
+}
+
+// Typing indicator: start immediately in all contexts (DMs, mentions, group channels)
+config.agents = config.agents || {};
+config.agents.defaults = config.agents.defaults || {};
+config.agents.defaults.typingMode = process.env.TYPING_MODE || 'instant';
+config.agents.defaults.typingIntervalSeconds = parseInt(process.env.TYPING_INTERVAL_SECONDS || '6', 10);
+
 // Telegram configuration
 // Overwrite entire channel object to drop stale keys from old R2 backups
 // that would fail OpenClaw's strict config validation (see #47)
@@ -366,11 +379,23 @@ if (process.env.DISCORD_BOT_TOKEN) {
 
 // Slack configuration
 if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
-    config.channels.slack = {
-        botToken: process.env.SLACK_BOT_TOKEN,
-        appToken: process.env.SLACK_APP_TOKEN,
-        enabled: true,
-    };
+    config.channels.slack = config.channels.slack || {};
+    config.channels.slack.botToken = process.env.SLACK_BOT_TOKEN;
+    config.channels.slack.appToken = process.env.SLACK_APP_TOKEN;
+    config.channels.slack.enabled = true;
+    config.channels.slack.groupPolicy = 'open';
+    if (process.env.SLACK_REQUIRE_MENTION === 'false') {
+        config.channels.slack.channels = config.channels.slack.channels || {};
+        config.channels.slack.channels['*'] = { requireMention: false };
+    }
+    if (process.env.SLACK_DM_POLICY) {
+        config.channels.slack.dm = config.channels.slack.dm || {};
+        config.channels.slack.dm.enabled = true;
+        config.channels.slack.dm.policy = process.env.SLACK_DM_POLICY;
+        if (process.env.SLACK_ALLOW_FROM) {
+            config.channels.slack.dm.allowFrom = process.env.SLACK_ALLOW_FROM.split(',');
+        }
+    }
 }
 
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
